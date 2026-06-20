@@ -1,0 +1,37 @@
+import 'package:protobuf/protobuf.dart';import 'package:dio/dio.dart';import '../userservice.pb.dart';abstract class UserService {Future<.user.v1.User> getUser(.user.v1.GetUserRequest request);
+Future<.user.v1.User> createUser(.user.v1.CreateUserRequest request);
+ }
+
+class UnifiedUserService implements UserService {UnifiedUserService(this._transport);
+
+final Transport _transport;
+
+@override Future<.user.v1.User> getUser(.user.v1.GetUserRequest request) {     // HTTP get /v1/users/${request.id}
+    // No body
+    final response = await _transport.unaryCall<.user.v1.User>(
+      'UserService',
+      'getUser',
+      request,
+    );
+    return response;
+     } 
+@override Future<.user.v1.User> createUser(.user.v1.CreateUserRequest request) {     // HTTP post /v1/users
+    // Body: data: request.toProto3Json()
+    final response = await _transport.unaryCall<.user.v1.User>(
+      'UserService',
+      'createUser',
+      request,
+    );
+    return response;
+     } 
+ }
+
+class ApiSdk {ApiSdk(this._options) {           final transport = createTransport(_options.endpoint);
+          userService = UnifiedUserService(transport);
+           }
+
+final ClientOptions _options;
+
+UserService userService;
+
+ }
