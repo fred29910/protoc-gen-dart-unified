@@ -39,22 +39,22 @@
 - Produces: `createHttpExtensionRegistry()` that registers `Annotations.http`
 - Produces: `DescriptorParser.parse()` that returns `List<ServiceModel>` with fully resolved messages and HttpRule
 
-- [ ] **Step 1: Write failing test for ExtensionRegistry extraction**
+- [x] **Step 1: Write failing test for ExtensionRegistry extraction**
 
 Create `test/parser/extension_registry_test.dart` with a test that builds a `CodeGeneratorRequest` containing a method with `google.api.http` annotation and verifies the annotation is extracted (not null). This test will fail because `createHttpExtensionRegistry()` returns an empty registry.
 
 Expected: FAIL with "expected HttpRuleModel but got null"
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `dart test test/parser/extension_registry_test.dart -v`
 Expected: FAIL
 
-- [ ] **Step 3: Vendor google/api protos**
+- [x] **Step 3: Vendor google/api protos**
 
 Generate `http.pb.dart` and `annotations.pb.dart` from the fixture protos at `test/fixtures/google/api/http.proto`. Place them in `lib/src/parser/google/api/`. These provide the `HttpRule` message class and `Annotations.http` extension (field 72295728 on `MethodOptions`).
 
-- [ ] **Step 4: Implement `createHttpExtensionRegistry()`**
+- [x] **Step 4: Implement `createHttpExtensionRegistry()`**
 
 Modify `lib/src/parser/extension_registry.dart` to register `Annotations.http`:
 ```dart
@@ -69,7 +69,7 @@ ExtensionRegistry createHttpExtensionRegistry() {
 }
 ```
 
-- [ ] **Step 5: Create `FieldModel`**
+- [x] **Step 5: Create `FieldModel`**
 
 Create `lib/src/model/field_model.dart`:
 ```dart
@@ -90,7 +90,7 @@ class FieldModel {
 }
 ```
 
-- [ ] **Step 6: Create `MessageModel`**
+- [x] **Step 6: Create `MessageModel`**
 
 Create `lib/src/model/message_model.dart`:
 ```dart
@@ -109,7 +109,7 @@ class MessageModel {
 }
 ```
 
-- [ ] **Step 7: Update `MethodModel`**
+- [x] **Step 7: Update `MethodModel`**
 
 Modify `lib/src/model/method_model.dart` to add streaming flags and input fields:
 ```dart
@@ -135,7 +135,7 @@ class MethodModel {
 }
 ```
 
-- [ ] **Step 8: Update `ServiceModel`**
+- [x] **Step 8: Update `ServiceModel`**
 
 Modify `lib/src/model/service_model.dart` to include messages:
 ```dart
@@ -155,7 +155,7 @@ class ServiceModel {
 }
 ```
 
-- [ ] **Step 9: Implement `DescriptorParser._extractHttpRule()`**
+- [x] **Step 9: Implement `DescriptorParser._extractHttpRule()`**
 
 Modify `lib/src/parser/descriptor_parser.dart`:
 - Add `_extractHttpRule()` that re-parses `MethodDescriptorProto.options` bytes via `mergeFromBuffer(bytes, registry)` and calls `getExtension(Annotations.http)`
@@ -163,17 +163,17 @@ Modify `lib/src/parser/descriptor_parser.dart`:
 - Add `_parseMessages()` that builds `MessageModel` list from `DescriptorProto`
 - Update `parse()` to detect streaming (`method.serverStreaming`, `method.clientStreaming`) and build messages
 
-- [ ] **Step 10: Run test to verify it passes**
+- [x] **Step 10: Run test to verify it passes**
 
 Run: `dart test test/parser/extension_registry_test.dart -v`
 Expected: PASS
 
-- [ ] **Step 11: Run all tests to verify no regressions**
+- [x] **Step 11: Run all tests to verify no regressions**
 
 Run: `dart test -v`
 Expected: All existing tests PASS
 
-- [ ] **Step 12: Commit**
+- [x] **Step 12: Commit**
 
 ```bash
 git add lib/src/parser/google/api/ lib/src/parser/extension_registry.dart lib/src/parser/descriptor_parser.dart lib/src/model/field_model.dart lib/src/model/message_model.dart lib/src/model/method_model.dart lib/src/model/service_model.dart test/parser/extension_registry_test.dart
@@ -196,7 +196,7 @@ git commit -m "feat: implement ExtensionRegistry + google.api.http extraction wi
 - Produces: `HttpMapper` class with `mapPath()`, `flattenQuery()`, `resolveBody()` static methods
 - Produces: `PathMapping`, `QueryField`, `BodyMapping` value classes
 
-- [ ] **Step 1: Write failing tests for HttpMapper**
+- [x] **Step 1: Write failing tests for HttpMapper**
 
 Create `test/builder/http_mapper_test.dart` with tests for:
 - `HttpMapper.mapPath("/v1/users/{id}", fields)` → `PathMapping(literals: ["/v1/users/"], fields: ["id"])`
@@ -209,12 +209,12 @@ Create `test/builder/http_mapper_test.dart` with tests for:
 
 Expected: FAIL with "HttpMapper not defined"
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dart test test/builder/http_mapper_test.dart -v`
 Expected: FAIL
 
-- [ ] **Step 3: Create value classes**
+- [x] **Step 3: Create value classes**
 
 Create `lib/src/builder/path_mapping.dart`:
 ```dart
@@ -243,24 +243,24 @@ class BodyMapping {
 }
 ```
 
-- [ ] **Step 4: Implement `HttpMapper`**
+- [x] **Step 4: Implement `HttpMapper`**
 
 Create `lib/src/builder/http_mapper.dart` with:
 - `mapPath()`: State-machine parser for `{field}` and `{field=segments/*}` templates. Iterates character-by-character, tracking `inBrace` state. Extracts field names and literal segments.
 - `flattenQuery()`: Takes all message fields, removes path-bound fields and body field, returns `List<QueryField>` for remaining fields.
 - `resolveBody()`: Returns `BodyMapping` based on `httpRule.body` value (`"*"` → all, non-empty → field, empty → none).
 
-- [ ] **Step 5: Run tests to verify they pass**
+- [x] **Step 5: Run tests to verify they pass**
 
 Run: `dart test test/builder/http_mapper_test.dart -v`
 Expected: PASS
 
-- [ ] **Step 6: Run all tests to verify no regressions**
+- [x] **Step 6: Run all tests to verify no regressions**
 
 Run: `dart test -v`
 Expected: All tests PASS
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add lib/src/builder/ test/builder/
@@ -283,18 +283,18 @@ git commit -m "feat: implement HTTP mapping engine (path interpolation, query fl
 - Produces: `CodeGeneratorResponse_File` with complete generated Dart source
 - Each generator produces `Spec` (code_builder AST) for its section
 
-- [ ] **Step 1: Write failing test for code generation**
+- [x] **Step 1: Write failing test for code generation**
 
 Update `test/golden/golden_test.dart` to add a test that generates a service facade for a proto with `google.api.http` annotations and verifies the output contains expected class/method signatures.
 
 Expected: FAIL with "class not found in output" or similar
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `dart test test/golden/golden_test.dart -v`
 Expected: FAIL
 
-- [ ] **Step 3: Create `FacadeGenerator`**
+- [x] **Step 3: Create `FacadeGenerator`**
 
 Create `lib/src/generators/facade_generator.dart`:
 - Generates abstract service interface using `Interface((b) => b..name = serviceName)`
@@ -302,7 +302,7 @@ Create `lib/src/generators/facade_generator.dart`:
 - Each method delegates to `_transport.unaryCall(serviceName, methodName, request)`
 - Uses `code_builder` `Method`, `Reference`, `Code` AST nodes
 
-- [ ] **Step 4: Create `HttpGenerator`**
+- [x] **Step 4: Create `HttpGenerator`**
 
 Create `lib/src/generators/http_generator.dart`:
 - Extends `FacadeGenerator` with HTTP-specific method bodies
@@ -311,7 +311,7 @@ Create `lib/src/generators/http_generator.dart`:
 - Response deserialization: `OutputType.mergeFromProto3Json(response.data)`
 - Error mapping: `try { ... } on DioException catch (e) { throw _mapDioError(e); }`
 
-- [ ] **Step 5: Create `GrpcGenerator`**
+- [x] **Step 5: Create `GrpcGenerator`**
 
 Create `lib/src/generators/grpc_generator.dart`:
 - Extends `FacadeGenerator` with gRPC-specific method bodies
@@ -319,14 +319,14 @@ Create `lib/src/generators/grpc_generator.dart`:
 - Generates: `UserServiceClient(_channel).getUser(request, options: _callOptions(options))`
 - Error mapping: `try { ... } on GrpcError catch (e) { throw _mapGrpcError(e); }`
 
-- [ ] **Step 6: Create `SdkGenerator`**
+- [x] **Step 6: Create `SdkGenerator`**
 
 Create `lib/src/generators/sdk_generator.dart`:
 - Generates `ApiSdk` class with `ClientOptions` constructor
 - Lazy-initialized service properties: `late final UserService userService = UnifiedUserService(_transport);`
 - Transport initialization: `_transport = createTransport(options.endpoint);`
 
-- [ ] **Step 7: Refactor `CodeGenerator`**
+- [x] **Step 7: Refactor `CodeGenerator`**
 
 Modify `lib/src/generator.dart`:
 - Replace `_generateServiceFacade()` with generator coordination
@@ -334,17 +334,17 @@ Modify `lib/src/generator.dart`:
 - Wire up `FacadeGenerator` + transport generator + `SdkGenerator`
 - Combine all AST sections, emit via `DartEmitter`, format via `formatDartSource()`
 
-- [ ] **Step 8: Run test to verify it passes**
+- [x] **Step 8: Run test to verify it passes**
 
 Run: `dart test test/golden/golden_test.dart -v`
 Expected: PASS
 
-- [ ] **Step 9: Run all tests to verify no regressions**
+- [x] **Step 9: Run all tests to verify no regressions**
 
 Run: `dart test -v`
 Expected: All tests PASS
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 ```bash
 git add lib/src/generators/ lib/src/generator.dart test/golden/
@@ -365,7 +365,7 @@ git commit -m "feat: implement code_builder-based service facade, HTTP/gRPC gene
 - Consumes: `Transport` abstract class (with `serverStream`)
 - Produces: `HttpTransport` (dio-based), `GrpcTransport` (delegate to *ServiceClient)
 
-- [ ] **Step 1: Write failing tests for Transport implementations**
+- [x] **Step 1: Write failing tests for Transport implementations**
 
 Create `test/runtime/transport_impl_test.dart` with tests for:
 - `HttpTransport.unaryCall` makes correct HTTP request (mock dio)
@@ -375,12 +375,12 @@ Create `test/runtime/transport_impl_test.dart` with tests for:
 
 Expected: FAIL with "HttpTransport not implemented"
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dart test test/runtime/transport_impl_test.dart -v`
 Expected: FAIL
 
-- [ ] **Step 3: Add `serverStream` to `Transport` abstract class**
+- [x] **Step 3: Add `serverStream` to `Transport` abstract class**
 
 Modify `lib/src/runtime/transport.dart`:
 ```dart
@@ -401,7 +401,7 @@ abstract class Transport {
 }
 ```
 
-- [ ] **Step 4: Implement `HttpTransport` for native**
+- [x] **Step 4: Implement `HttpTransport` for native**
 
 Modify `lib/src/runtime/transport_native.dart`:
 ```dart
@@ -432,7 +432,7 @@ class HttpTransport implements Transport {
 
 Note: Full `HttpTransport` implementation requires the generated code to pass HttpRule data. The transport itself is a runtime component — the generator produces code that calls this transport. For now, implement the skeleton with correct method signatures and error mapping.
 
-- [ ] **Step 5: Implement `GrpcTransport` for native**
+- [x] **Step 5: Implement `GrpcTransport` for native**
 
 Modify `lib/src/runtime/transport_native.dart`:
 ```dart
@@ -458,7 +458,7 @@ class GrpcTransport implements Transport {
 }
 ```
 
-- [ ] **Step 6: Implement `HttpTransport` for web**
+- [x] **Step 6: Implement `HttpTransport` for web**
 
 Modify `lib/src/runtime/transport_web.dart`:
 ```dart
@@ -470,21 +470,21 @@ Transport? createTransport(String endpoint) {
 }
 ```
 
-- [ ] **Step 7: Update transport stub**
+- [x] **Step 7: Update transport stub**
 
 Modify `lib/src/runtime/transport_stub.dart` to include `serverStream` signature.
 
-- [ ] **Step 8: Run tests to verify they pass**
+- [x] **Step 8: Run tests to verify they pass**
 
 Run: `dart test test/runtime/transport_impl_test.dart -v`
 Expected: PASS
 
-- [ ] **Step 9: Run all tests to verify no regressions**
+- [x] **Step 9: Run all tests to verify no regressions**
 
 Run: `dart test -v`
 Expected: All tests PASS
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 ```bash
 git add lib/src/runtime/ test/runtime/transport_impl_test.dart
@@ -506,18 +506,18 @@ git commit -m "feat: implement Transport base classes (HttpTransport, GrpcTransp
 - Produces: `MethodModel.isServerStreaming`, `MethodModel.isClientStreaming`
 - Produces: Generated methods with `Stream<T>` return type for server streaming
 
-- [ ] **Step 1: Write failing test for streaming detection**
+- [x] **Step 1: Write failing test for streaming detection**
 
 Update `test/parser/extension_registry_test.dart` to add a test: given a proto method with `returns (stream User)`, verify `MethodModel.isServerStreaming == true`.
 
 Expected: FAIL with "expected true but got false"
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `dart test test/parser/extension_registry_test.dart -v`
 Expected: FAIL
 
-- [ ] **Step 3: Update `DescriptorParser` for streaming detection**
+- [x] **Step 3: Update `DescriptorParser` for streaming detection**
 
 Modify `lib/src/parser/descriptor_parser.dart` in the `parse()` method:
 ```dart
@@ -526,28 +526,28 @@ final isClientStreaming = method.clientStreaming;
 ```
 Pass these to `MethodModel` constructor.
 
-- [ ] **Step 4: Update `FacadeGenerator` for streaming return types**
+- [x] **Step 4: Update `FacadeGenerator` for streaming return types**
 
 Modify `lib/src/generators/facade_generator.dart`:
 - For server streaming methods: generate `Stream<OutputType> methodName(InputType request)`
 - For unary methods: generate `Future<OutputType> methodName(InputType request)`
 
-- [ ] **Step 5: Update `HttpGenerator` for streaming stubs**
+- [x] **Step 5: Update `HttpGenerator` for streaming stubs**
 
 Modify `lib/src/generators/http_generator.dart`:
 - For server streaming methods: generate body that throws `UnimplementedError('HTTP server streaming requires SSE, deferred to Phase 3')`
 
-- [ ] **Step 6: Run test to verify it passes**
+- [x] **Step 6: Run test to verify it passes**
 
 Run: `dart test test/parser/extension_registry_test.dart -v`
 Expected: PASS
 
-- [ ] **Step 7: Run all tests to verify no regressions**
+- [x] **Step 7: Run all tests to verify no regressions**
 
 Run: `dart test -v`
 Expected: All tests PASS
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add lib/src/parser/descriptor_parser.dart lib/src/generators/facade_generator.dart lib/src/generators/http_generator.dart
@@ -568,7 +568,7 @@ git commit -m "feat: add server streaming detection and Stream<T> return type ge
 - Produces: Golden file with expected generated output for `user.proto`
 - Produces: Integration test verifying end-to-end generation
 
-- [ ] **Step 1: Write failing golden test**
+- [x] **Step 1: Write failing golden test**
 
 Update `test/golden/golden_test.dart`:
 - Build a `CodeGeneratorRequest` from `test/fixtures/user.proto` descriptors
@@ -578,12 +578,12 @@ Update `test/golden/golden_test.dart`:
 
 Expected: FAIL with "golden file not found" or content mismatch
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `dart test test/golden/golden_test.dart -v`
 Expected: FAIL
 
-- [ ] **Step 3: Generate golden file**
+- [x] **Step 3: Generate golden file**
 
 Run the generator with `--update-goldens` flag to create `test/goldens/user_service.dart.golden`. Manually verify the generated output contains:
 - `abstract class UserService` with `getUser` and `createUser` methods
@@ -592,33 +592,33 @@ Run the generator with `--update-goldens` flag to create `test/goldens/user_serv
 - Correct HTTP path interpolation for `getUser`: `/v1/users/${request.id}`
 - Correct body mapping for `createUser`: entire request as body
 
-- [ ] **Step 4: Write integration test**
+- [x] **Step 4: Write integration test**
 
 Create `test/generator_integration_test.dart`:
 - Test full round-trip: `CodeGeneratorRequest` → `CodeGenerator.generate()` → `CodeGeneratorResponse`
 - Verify response contains valid Dart code (parse via `dart analyze` in-process or check structure)
 - Verify `DartFormatter` idempotency on generated output
 
-- [ ] **Step 5: Run golden test to verify it passes**
+- [x] **Step 5: Run golden test to verify it passes**
 
 Run: `dart test test/golden/golden_test.dart -v`
 Expected: PASS
 
-- [ ] **Step 6: Run integration test to verify it passes**
+- [x] **Step 6: Run integration test to verify it passes**
 
 Run: `dart test test/generator_integration_test.dart -v`
 Expected: PASS
 
-- [ ] **Step 7: Run full test suite**
+- [x] **Step 7: Run full test suite**
 
 Run: `dart test -v`
 Expected: All tests PASS
 
-- [ ] **Step 8: Run dart analyze on generated code**
+- [x] **Step 8: Run dart analyze on generated code**
 
 Generate the `user_service.dart` output and run `dart analyze` on it to verify zero errors.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add test/goldens/ test/golden/golden_test.dart test/generator_integration_test.dart
@@ -632,21 +632,21 @@ git commit -m "feat: add golden tests and integration tests for end-to-end code 
 **Files:**
 - Modify: `openspec/changes/phase1-core-generation/tasks.md` (check all boxes)
 
-- [ ] **Step 1: Run full test suite**
+- [x] **Step 1: Run full test suite**
 
 Run: `dart test -v`
 Expected: All tests PASS
 
-- [ ] **Step 2: Run dart analyze**
+- [x] **Step 2: Run dart analyze**
 
 Run: `dart analyze`
 Expected: 0 errors
 
-- [ ] **Step 3: Check all tasks are complete**
+- [x] **Step 3: Check all tasks are complete**
 
 Verify all checkboxes in `openspec/changes/phase1-core-generation/tasks.md` are checked.
 
-- [ ] **Step 4: Final commit**
+- [x] **Step 4: Final commit**
 
 ```bash
 git add openspec/changes/phase1-core-generation/tasks.md
