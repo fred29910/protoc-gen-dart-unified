@@ -1,0 +1,20 @@
+{
+  "change": "phase1-core-generation",
+  "phase": "design",
+  "mode": "compact",
+  "canonical_spec": "openspec",
+  "generated_by": "comet-handoff.sh",
+  "context_hash": "388bb19f3d4c11209f64c4c388452e6096a45174ab7225e252e6991980d56133",
+  "files": [
+    { "path": "openspec/changes/phase1-core-generation/proposal.md", "sha256": "4762914ec2b7095b8c673813b2c10c947a99c341d4de2ea08039d21ecf6e38ff" },
+    { "path": "openspec/changes/phase1-core-generation/design.md", "sha256": "76c76eb35da29192e791ce9bdb8af3f2d2d6a6f2e388e62b575220306a260352" },
+    { "path": "openspec/changes/phase1-core-generation/tasks.md", "sha256": "35201116928cd2fb7a785c2b347741c7191e09aa8263f1781840b69a8b3c1044" },
+    { "path": "openspec/changes/phase1-core-generation/specs/golden-test-harness-delta/spec.md", "sha256": "ae16fe788f5907aa58864384e178418f854ca2b8367fded1bdf09704cf823f6f" },
+    { "path": "openspec/changes/phase1-core-generation/specs/google-api-http-extraction/spec.md", "sha256": "34dc6b75a10c2febfc028adc49fbe6ecd1c3642adf0941218ef60200c143bfdb" },
+    { "path": "openspec/changes/phase1-core-generation/specs/grpc-code-generation/spec.md", "sha256": "d3c25708e8cd6bbd4b1b28cf5c2418c90214d1505fb82d26d03b6f1fe36c1795" },
+    { "path": "openspec/changes/phase1-core-generation/specs/http-code-generation/spec.md", "sha256": "a80c48551297e4f66ef1a687f107524046670918317965182863295a1f2b40b8" },
+    { "path": "openspec/changes/phase1-core-generation/specs/sdk-entry-generation/spec.md", "sha256": "f8877df399d6872cc06a3f05c84881d77657d73ec76015b6c58b38962ab673e5" },
+    { "path": "openspec/changes/phase1-core-generation/specs/transport-implementation/spec.md", "sha256": "47c334dac3eb98b738a7ff9a511d7ccf3e58c51f95570f67849a89e627a7a363" },
+    { "path": "openspec/changes/phase1-core-generation/specs/unary-service-generation-delta/spec.md", "sha256": "54ff128945bd4d4b29a18e37d0ec3b63986b0ef43aa69949b62d08db1af2cdea" }
+  ]
+}
