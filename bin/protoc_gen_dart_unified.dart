@@ -1,9 +1,5 @@
-// ignore_for_file: avoid_print
-
-import 'dart:io';
+import 'package:protoc_gen_dart_unified/src/generator.dart';
 
 Future<void> main(List<String> args) async {
-  // TODO: implement stdin/stdout entrypoint
-  print('protoc-gen-dart-unified MVP skeleton');
-  exit(0);
+  await runCodeGenerator();
 }
