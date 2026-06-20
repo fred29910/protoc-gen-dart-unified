@@ -2,6 +2,7 @@ import 'package:protobuf/protobuf.dart';
 import 'package:protoc_plugin/src/gen/google/protobuf/descriptor.pb.dart';
 import 'extension_registry.dart';
 import 'google/api/annotations.pb.dart';
+import 'google/api/http.pb.dart' as http_rule;
 import '../model/service_model.dart';
 import '../model/method_model.dart';
 import '../model/http_rule_model.dart';
@@ -69,14 +70,14 @@ class DescriptorParser {
           method.options.writeToBuffer(), registry);
       final httpRule = options.getExtension(Annotations.http);
       if (httpRule == null) return null;
-      return _mapHttpRule(httpRule);
+      return _mapHttpRule(httpRule as http_rule.HttpRule);
     } catch (_) {
       return null;
     }
   }
 
   /// Maps protobuf HttpRule to internal HttpRuleModel.
-  HttpRuleModel _mapHttpRule(dynamic httpRule) {
+  HttpRuleModel _mapHttpRule(http_rule.HttpRule httpRule) {
     String kind = '';
     String path = '';
 
