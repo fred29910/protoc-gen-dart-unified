@@ -1,0 +1,14 @@
+{
+  "change": "service-governance-observability",
+  "phase": "design",
+  "mode": "compact",
+  "canonical_spec": "openspec",
+  "generated_by": "comet-handoff.sh",
+  "context_hash": "27cf80177d5f7d2929a3c4d3f6e77b741c32d23d4c7c3f48b7ae7d633cf1f8e0",
+  "files": [
+    { "path": "openspec/changes/service-governance-observability/proposal.md", "sha256": "0492ee7a19cec94b5a152ece4b3b32a6c1e5554a85893260099c950139348f05" },
+    { "path": "openspec/changes/service-governance-observability/design.md", "sha256": "79710aac775b1f63e3614f4249b24540f096e007ae2a232a171cd46079a77720" },
+    { "path": "openspec/changes/service-governance-observability/tasks.md", "sha256": "4b1427892cbe1af592b56905ea396f4faa6cb1d183210cc268d74dee117b70bb" },
+    { "path": "openspec/changes/service-governance-observability/specs/service-governance-observability/spec.md", "sha256": "c446fc9b3cee60b725c02292b5d90dcbd602fe1c4f9c30b0074a651c44904c24" }
+  ]
+}
