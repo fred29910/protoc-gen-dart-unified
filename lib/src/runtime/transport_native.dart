@@ -1,8 +1,6 @@
 import 'package:dio/dio.dart';
-import 'package:grpc/grpc.dart' as grpc;
 import 'transport.dart';
 import 'api_exception.dart';
-import 'http_status_mapping.dart';
 
 /// Creates a transport for native platforms (iOS, Android, Desktop).
 ///
