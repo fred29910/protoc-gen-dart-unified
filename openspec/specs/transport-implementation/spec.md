@@ -1,10 +1,8 @@
 # transport-implementation Specification
 
 ## Purpose
-Provide concrete `Transport` implementations for HTTP (dio) and gRPC (delegating to `*.pbgrpc.dart`), with conditional import-based platform selection.
-
+TBD - created by archiving change phase1-core-generation. Update Purpose after archive.
 ## Requirements
-
 ### Requirement: HttpTransport unary implementation
 
 The system SHALL implement `HttpTransport.unaryCall` using `dio` for HTTP/JSON calls.
@@ -14,7 +12,7 @@ The system SHALL implement `HttpTransport.unaryCall` using `dio` for HTTP/JSON c
 - **THEN** it sends an HTTP request with the correct method, path, query params, and body, and returns the deserialized response
 
 #### Scenario: HTTP error response
-- **WHEN` the server returns a non-2xx status code
+- **WHEN** the server returns a non-2xx status code
 - **THEN** `HttpTransport` maps it to the corresponding `ApiException` subclass via `grpcCodeToHttpStatus`
 
 #### Scenario: DioException handling
@@ -30,7 +28,7 @@ The system SHALL implement `GrpcTransport.unaryCall` by delegating to the genera
 - **THEN** it calls the corresponding method on the `*ServiceClient` and returns the response
 
 #### Scenario: GrpcError handling
-- **WHEN` the gRPC call fails with a `GrpcError`
+- **WHEN** the gRPC call fails with a `GrpcError`
 - **THEN** `GrpcTransport` maps the gRPC code to `ApiException` and throws
 
 ### Requirement: Server streaming transport
@@ -56,3 +54,4 @@ The system SHALL use conditional imports to select the correct transport at comp
 #### Scenario: Web platform
 - **WHEN** compiled with `dart.library.js_interop`
 - **THEN** `createTransport` returns an HTTP-only transport
+

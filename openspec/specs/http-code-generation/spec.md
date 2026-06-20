@@ -1,10 +1,8 @@
 # http-code-generation Specification
 
 ## Purpose
-Generate complete Dart service facades with HTTP transport calls, using `code_builder` AST construction for syntactically correct output.
-
+TBD - created by archiving change phase1-core-generation. Update Purpose after archive.
 ## Requirements
-
 ### Requirement: Path parameter interpolation
 
 The system SHALL interpolate `{field}` path placeholders with Dart expression accessors from the request message.
@@ -105,3 +103,4 @@ The system SHALL select transport per-service: if any method in a service has a 
 #### Scenario: Service without annotations
 - **WHEN** no method in a service has `google.api.http`
 - **THEN** the service is generated with gRPC transport only
+

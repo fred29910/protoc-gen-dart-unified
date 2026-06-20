@@ -1,10 +1,8 @@
 # sdk-entry-generation Specification
 
 ## Purpose
-Generate the `ApiSdk` unified entry class that wires up all service clients with the configured transport, interceptors, and protocol selection.
-
+TBD - created by archiving change phase1-core-generation. Update Purpose after archive.
 ## Requirements
-
 ### Requirement: ApiSdk class generation
 
 The system SHALL generate an `ApiSdk` class as the single entry point for all generated services.
@@ -40,3 +38,4 @@ The generated `ApiSdk` SHALL support interceptor injection.
 #### Scenario: Interceptor registered
 - **WHEN** an interceptor is added via `ApiSdk.addInterceptor()`
 - **THEN** all service calls pass through the interceptor chain before reaching the transport
+

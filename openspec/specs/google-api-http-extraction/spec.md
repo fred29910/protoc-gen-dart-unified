@@ -1,10 +1,8 @@
 # google-api-http-extraction Specification
 
 ## Purpose
-Extract `google.api.http` custom options from method descriptors using an `ExtensionRegistry`, so HTTP annotations are never silently dropped as unknown fields.
-
+TBD - created by archiving change phase1-core-generation. Update Purpose after archive.
 ## Requirements
-
 ### Requirement: ExtensionRegistry registration
 
 The system SHALL register the `Annotations.http` extension (field 72295728 on `MethodOptions`) in the `ExtensionRegistry` used during descriptor parsing.
@@ -40,3 +38,4 @@ The system SHALL map all `HttpRule` fields to `HttpRuleModel`: `kind`, `path`, `
 #### Scenario: Body mapping captured
 - **WHEN** `body: "*"` or `body: "field_name"` is set
 - **THEN** `HttpRuleModel.body` contains the exact string value
+
