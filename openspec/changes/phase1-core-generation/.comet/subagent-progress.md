@@ -1,8 +1,8 @@
 # Subagent Progress — phase1-core-generation
 
 ## Status
-- **Current Task**: Task 1 — ExtensionRegistry + google.api.http Extraction
-- **Stage**: implementing
+- **Current Task**: Task 2 — HTTP Mapping Engine
+- **Stage**: pending
 - **Review Mode**: thorough
 - **TDD Mode**: tdd
 - **Branch**: feature/20260620/phase1-core-generation
@@ -11,16 +11,13 @@
 ## Tasks
 
 ### Task 1: ExtensionRegistry + google.api.http Extraction
-- **Status**: implementing
-- **Plan Text**: "Task 1: ExtensionRegistry + google.api.http Extraction"
-- **OpenSpec Task**: "## 1. ExtensionRegistry + google.api.http Extraction"
-- **Implementer**: (pending dispatch)
-- **Commits**: (pending)
-- **RED/GREEN Evidence**: (pending)
-- **Review Rounds**: 0/2
+- **Status**: ✅ DONE
+- **Commits**: a555b2c
+- **Tests**: 21/21 passing
 
 ### Task 2: HTTP Mapping Engine
 - **Status**: pending
+- **Plan Text**: "Task 2: HTTP Mapping Engine"
 
 ### Task 3: Code Generation with code_builder
 - **Status**: pending
