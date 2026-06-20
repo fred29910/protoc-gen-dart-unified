@@ -1,8 +1,8 @@
 # Subagent Progress — phase1-core-generation
 
 ## Status
-- **Current Task**: Task 2 — HTTP Mapping Engine
-- **Stage**: pending
+- **Current Task**: All tasks complete
+- **Stage**: done
 - **Review Mode**: thorough
 - **TDD Mode**: tdd
 - **Branch**: feature/20260620/phase1-core-generation
@@ -10,26 +10,15 @@
 
 ## Tasks
 
-### Task 1: ExtensionRegistry + google.api.http Extraction
-- **Status**: ✅ DONE
-- **Commits**: a555b2c
-- **Tests**: 21/21 passing
+### Task 1: ExtensionRegistry + google.api.http Extraction ✅ DONE (a555b2c)
+### Task 2: HTTP Mapping Engine ✅ DONE (00f4f57)
+### Task 3: Code Generation with code_builder ✅ DONE (599d0cc)
+### Task 4: Transport Implementation ✅ DONE (b9cb610)
+### Task 5: Server Streaming Support ✅ DONE (795d005)
+### Task 6: Golden Tests + Integration Tests ✅ DONE (af5b0b7, e933026)
+### Task 7: Final Verification + Cleanup ✅ DONE (3be4ea3)
 
-### Task 2: HTTP Mapping Engine
-- **Status**: pending
-- **Plan Text**: "Task 2: HTTP Mapping Engine"
-
-### Task 3: Code Generation with code_builder
-- **Status**: pending
-
-### Task 4: Transport Implementation
-- **Status**: pending
-
-### Task 5: Server Streaming Support
-- **Status**: pending
-
-### Task 6: Golden Tests + Integration Tests
-- **Status**: pending
-
-### Task 7: Final Verification + Cleanup
-- **Status**: pending
+## Results
+- 41/41 tests passing
+- 0 analyzer errors
+- 7 commits on branch
