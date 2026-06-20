@@ -6,19 +6,8 @@
       "variant": "max",
       "fallback_models": [
         {
-          "model": "github-copilot/claude-opus-4.7",
+          "model": "google/antigravity-claude-sonnet-4-6",
           "variant": "max"
-        },
-        {
-          "model": "opencode/claude-opus-4-7",
-          "variant": "max"
-        },
-        {
-          "model": "opencode/kimi-k2.5"
-        },
-        {
-          "model": "openai/gpt-5.5",
-          "variant": "medium"
         },
         {
           "model": "opencode/deepseek-v4-flash-free",
@@ -30,180 +19,109 @@
       ]
     },
     "hephaestus": {
-      "model": "openrouter/openrouter/owl-alpha",
+      "model": "opencode/mimo-v2.5-free",
       "variant": "medium",
       "fallback_models": [
-        {
-          "model": "openrouter/nvidia/nemotron-3-super-120b-a12b:free",
-          "variant": "medium"
-        },
         {
           "model": "opencode/deepseek-v4-flash-free",
           "variant": "medium"
         },
         {
-          "model": "opencode/nemotron-3-super-free",
+          "model": "opencode/north-mini-code-free",
           "variant": "medium"
         }
       ]
     },
     "oracle": {
-      "model": "opencode/deepseek-v4-flash-free",
-      "variant": "high",
+      "model": "zenmux/z-ai/glm-5.2-free",
+      "variant": "max",
       "fallback_models": [
+        {
+          "model": "google/antigravity-claude-sonnet-4-6",
+          "variant": "max"
+        },
+        {
+          "model": "zenmux/moonshotai/kimi-k2.7-code-free",
+          "variant": "high"
+        },
         {
           "model": "opencode/deepseek-v4-flash-free",
           "variant": "high"
         },
         {
-          "model": "opencode/nemotron-3-super-free",
+          "model": "google/gemini-3.1-pro-preview-customtools",
           "variant": "high"
-        },
-        {
-          "model": "google/gemini-3.1-pro-preview",
-          "variant": "high"
-        },
-        {
-          "model": "github-copilot/gemini-3.1-pro-preview",
-          "variant": "high"
-        },
-        {
-          "model": "opencode/gemini-3.1-pro",
-          "variant": "high"
-        },
-        {
-          "model": "anthropic/claude-opus-4-7",
-          "variant": "max"
-        },
-        {
-          "model": "github-copilot/claude-opus-4.7",
-          "variant": "max"
-        },
-        {
-          "model": "opencode/claude-opus-4-7",
-          "variant": "max"
         }
       ]
     },
     "librarian": {
-      "model": "opencode/nemotron-3-super-free",
+      "model": "opencode/north-mini-code-free",
       "fallback_models": [
         {
-          "model": "anthropic/claude-haiku-4-5"
+          "model": "opencode/mimo-v2.5-free"
         },
         {
-          "model": "opencode/claude-haiku-4-5"
-        },
-        {
-          "model": "openai/gpt-5.4-nano"
-        },
-        {
-          "model": "opencode/gpt-5.4-nano"
+          "model": "zenmux/moonshotai/kimi-k2.7-code-free"
         }
       ]
     },
     "explore": {
-      "model": "opencode/nemotron-3-super-free",
+      "model": "opencode/mimo-v2.5-free",
       "fallback_models": [
         {
-          "model": "anthropic/claude-haiku-4-5"
+          "model": "zenmux/z-ai/glm-5.2-free"
         },
         {
-          "model": "opencode/claude-haiku-4-5"
-        },
-        {
-          "model": "openai/gpt-5.4-nano"
-        },
-        {
-          "model": "opencode/gpt-5.4-nano"
+          "model": "zenmux/moonshotai/kimi-k2.7-code-free"
         }
       ]
     },
     "multimodal-looker": {
-      "model": "google/antigravity-gemini-3-flash",
+      "model": "opencode/north-mini-code-free",
       "variant": "medium",
       "fallback_models": [
         {
-          "model": "opencode/nemotron-3-super-free",
+          "model": "opencode/north-mini-code-free",
           "variant": "medium"
         },
         {
-          "model": "openai/gpt-5-nano"
-        },
-        {
-          "model": "github-copilot/gpt-5-nano"
-        },
-        {
-          "model": "opencode/gpt-5-nano"
+          "model": "zenmux/moonshotai/kimi-k2.7-code-free"
         }
       ]
     },
     "prometheus": {
-      "model": "anthropic/claude-opus-4-7",
+      "model": "opencode/mimo-v2.5-free",
       "variant": "max",
       "fallback_models": [
-        {
-          "model": "github-copilot/claude-opus-4.7",
-          "variant": "max"
-        },
-        {
-          "model": "opencode/claude-opus-4-7",
-          "variant": "max"
-        },
-        {
-          "model": "openai/gpt-5.5",
-          "variant": "high"
-        },
         {
           "model": "opencode/deepseek-v4-flash-free",
           "variant": "high"
         },
         {
-          "model": "opencode/nemotron-3-super-free",
+          "model": "opencode/north-mini-code-free",
           "variant": "high"
         },
         {
-          "model": "google/gemini-3.1-pro-preview"
+          "model": "google/antigravity-claude-sonnet-4-6",
+          "variant": "max"
         },
         {
-          "model": "github-copilot/gemini-3.1-pro-preview"
-        },
-        {
-          "model": "opencode/gemini-3.1-pro"
+          "model": "google/gemini-3.1-pro-preview-customtools"
         }
       ]
     },
     "metis": {
-      "model": "opencode/nemotron-3-super-free",
+      "model": "opencode/north-mini-code-free",
       "fallback_models": [
         {
-          "model": "github-copilot/claude-sonnet-4.6"
-        },
-        {
-          "model": "opencode/claude-sonnet-4-6"
-        },
-        {
-          "model": "anthropic/claude-opus-4-7",
-          "variant": "max"
-        },
-        {
-          "model": "github-copilot/claude-opus-4.7",
-          "variant": "max"
-        },
-        {
-          "model": "opencode/claude-opus-4-7",
-          "variant": "max"
-        },
-        {
-          "model": "openai/gpt-5.5",
-          "variant": "high"
+          "model": "google/antigravity-claude-sonnet-4-6"
         },
         {
           "model": "opencode/deepseek-v4-flash-free",
           "variant": "high"
         },
         {
-          "model": "opencode/nemotron-3-super-free",
+          "model": "opencode/north-mini-code-free",
           "variant": "high"
         }
       ]
@@ -217,77 +135,43 @@
           "variant": "xhigh"
         },
         {
-          "model": "opencode/nemotron-3-super-free",
+          "model": "opencode/north-mini-code-free",
           "variant": "xhigh"
         },
         {
-          "model": "anthropic/claude-opus-4-7",
-          "variant": "max"
-        },
-        {
-          "model": "github-copilot/claude-opus-4.7",
-          "variant": "max"
-        },
-        {
-          "model": "opencode/claude-opus-4-7",
-          "variant": "max"
-        },
-        {
-          "model": "google/gemini-3.1-pro-preview",
-          "variant": "high"
-        },
-        {
-          "model": "github-copilot/gemini-3.1-pro-preview",
-          "variant": "high"
-        },
-        {
-          "model": "opencode/gemini-3.1-pro",
+          "model": "google/gemini-3.1-pro-preview-customtools",
           "variant": "high"
         }
       ]
     },
     "atlas": {
-      "model": "opencode/deepseek-v4-flash-free",
+      "model": "opencode/nemotron-3-ultra-free",
       "fallback_models": [
         {
-          "model": "github-copilot/claude-sonnet-4.6"
-        },
-        {
-          "model": "opencode/claude-sonnet-4-6"
-        },
-        {
-          "model": "openai/gpt-5.5",
-          "variant": "medium"
+          "model": "google/antigravity-claude-sonnet-4-6"
         },
         {
           "model": "opencode/deepseek-v4-flash-free",
           "variant": "medium"
         },
         {
-          "model": "opencode/nemotron-3-super-free",
+          "model": "opencode/north-mini-code-free",
           "variant": "medium"
         }
       ]
     },
     "sisyphus-junior": {
-      "model": "opencode/deepseek-v4-flash-free",
+      "model": "opencode/north-mini-code-free",
+      "variant": "medium",
       "fallback_models": [
         {
-          "model": "github-copilot/claude-sonnet-4.6"
+          "model": "google/antigravity-claude-sonnet-4-6"
         },
         {
-          "model": "opencode/claude-sonnet-4-6"
-        },
-        {
-          "model": "openai/gpt-5.5",
-          "variant": "medium"
+          "model": "google/gemini-3.1-pro-preview-customtools"
         },
         {
           "model": "opencode/deepseek-v4-flash-free",
-          "variant": "medium"
-        },
-        {
-          "model": "opencode/nemotron-3-super-free",
           "variant": "medium"
         },
         {
@@ -304,48 +188,35 @@
   },
   "categories": {
     "visual-engineering": {
-      "model": "opencode/deepseek-v4-flash-free",
+      "model": "zenmux/moonshotai/kimi-k2.7-code-free",
       "variant": "high",
       "fallback_models": [
         {
-          "model": "github-copilot/gemini-3.1-pro-preview",
+          "model": "opencode/deepseek-v4-flash-free"
+        },
+        {
+          "model": "zenmux/stepfun/step-3.7-flash-free",
           "variant": "high"
         },
         {
-          "model": "opencode/gemini-3.1-pro",
-          "variant": "high"
+          "model": "opencode/north-mini-code-free"
         },
         {
-          "model": "opencode/glm-5"
-        },
-        {
-          "model": "anthropic/claude-opus-4-7",
-          "variant": "max"
-        },
-        {
-          "model": "github-copilot/claude-opus-4.7",
-          "variant": "max"
-        },
-        {
-          "model": "opencode/claude-opus-4-7",
+          "model": "google/antigravity-claude-sonnet-4-6",
           "variant": "max"
         }
       ]
     },
     "ultrabrain": {
-      "model": "opencode/nemotron-3-super-free",
+      "model": "zenmux/z-ai/glm-5.2-free",
       "variant": "xhigh",
       "fallback_models": [
         {
-          "model": "opencode/nemotron-3-super-free",
-          "variant": "xhigh"
-        },
-        {
-          "model": "google/gemini-3.1-pro-preview",
+          "model": "opencode/deepseek-v4-flash-free",
           "variant": "high"
         },
         {
-          "model": "github-copilot/gemini-3.1-pro-preview",
+          "model": "google/gemini-3.1-pro-preview-customtools",
           "variant": "high"
         },
         {
@@ -353,49 +224,25 @@
           "variant": "high"
         },
         {
-          "model": "anthropic/claude-opus-4-7",
-          "variant": "max"
-        },
-        {
-          "model": "github-copilot/claude-opus-4.7",
-          "variant": "max"
-        },
-        {
-          "model": "opencode/claude-opus-4-7",
+          "model": "opencode/north-mini-code-free",
           "variant": "max"
         }
       ]
     },
     "deep": {
-      "model": "opencode/deepseek-v4-flash-free",
-      "variant": "medium",
+      "model": "zenmux/moonshotai/kimi-k2.7-code-free",
+      "variant": "max",
       "fallback_models": [
         {
-          "model": "opencode/nemotron-3-super-free",
+          "model": "opencode/deepseek-v4-flash-free",
+          "variant": "high"
+        },
+        {
+          "model": "google/antigravity-claude-sonnet-4-6",
           "variant": "medium"
         },
         {
-          "model": "anthropic/claude-opus-4-7",
-          "variant": "max"
-        },
-        {
-          "model": "github-copilot/claude-opus-4.7",
-          "variant": "max"
-        },
-        {
-          "model": "opencode/claude-opus-4-7",
-          "variant": "max"
-        },
-        {
-          "model": "google/gemini-3.1-pro-preview",
-          "variant": "high"
-        },
-        {
-          "model": "github-copilot/gemini-3.1-pro-preview",
-          "variant": "high"
-        },
-        {
-          "model": "opencode/gemini-3.1-pro",
+          "model": "google/gemini-3.1-pro-preview-customtools",
           "variant": "high"
         }
       ]
@@ -405,33 +252,15 @@
       "variant": "high",
       "fallback_models": [
         {
-          "model": "opencode/nemotron-3-super-free"
-        },
-        {
-          "model": "github-copilot/gemini-3.1-pro-preview",
-          "variant": "high"
-        },
-        {
           "model": "opencode/gemini-3.1-pro",
           "variant": "high"
         },
         {
-          "model": "anthropic/claude-opus-4-7",
+          "model": "google/antigravity-claude-sonnet-4-6",
           "variant": "max"
         },
         {
-          "model": "github-copilot/claude-opus-4.7",
-          "variant": "max"
-        },
-        {
-          "model": "opencode/claude-opus-4-7",
-          "variant": "max"
-        },
-        {
-          "model": "openai/gpt-5.5"
-        },
-        {
-          "model": "opencode/deepseek-v4-flash-free"
+          "model": "opencode/mimo-v2.5-free"
         }
       ]
     },
@@ -439,31 +268,16 @@
       "model": "opencode/deepseek-v4-flash-free",
       "fallback_models": [
         {
+          "model": "google/gemini-3.1-flash-lite"
+        },
+        {
+          "model": "zenmux/moonshotai/kimi-k2.7-code-free"
+        },
+        {
           "model": "opencode/big-pickle"
         },
         {
-          "model": "opencode/gpt-5.4-mini"
-        },
-        {
-          "model": "anthropic/claude-haiku-4-5"
-        },
-        {
-          "model": "github-copilot/claude-haiku-4.5"
-        },
-        {
-          "model": "opencode/claude-haiku-4-5"
-        },
-        {
-          "model": "google/gemini-3-flash-preview"
-        },
-        {
-          "model": "github-copilot/gemini-3-flash-preview"
-        },
-        {
-          "model": "opencode/gemini-3-flash"
-        },
-        {
-          "model": "opencode/gpt-5-nano"
+          "model": "opencode/mimo-v2.5-free"
         }
       ]
     },
@@ -471,79 +285,53 @@
       "model": "opencode/deepseek-v4-flash-free",
       "fallback_models": [
         {
+          "model": "opencode/north-mini-code-free",
+          "variant": "max"
+        },
+        {
           "model": "opencode/big-pickle"
         },
         {
-          "model": "opencode/claude-sonnet-4-6"
+          "model": "google/antigravity-claude-sonnet-4-6"
         },
         {
-          "model": "openai/gpt-5.3-codex",
-          "variant": "medium"
+          "model": "google/antigravity-gemini-3.1-pro"
         },
         {
-          "model": "opencode/gpt-5.3-codex",
-          "variant": "medium"
-        },
-        {
-          "model": "google/gemini-3-flash-preview"
-        },
-        {
-          "model": "github-copilot/gemini-3-flash-preview"
-        },
-        {
-          "model": "opencode/gemini-3-flash"
+          "model": "google/gemini-3.1-pro-preview-customtools"
         }
       ]
     },
     "unspecified-high": {
-      "model": "opencode/deepseek-v4-flash-free",
-      "variant": "max",
+      "model": "zenmux/z-ai/glm-5.2-free",
+      "variant": "high",
       "fallback_models": [
         {
-          "model": "opencode/nemotron-3-super-free",
-          "variant": "high"
-        },
-        {
-          "model": "github-copilot/claude-opus-4.7",
+          "model": "google/antigravity-claude-sonnet-4-6",
           "variant": "max"
         },
         {
-          "model": "opencode/claude-opus-4-7",
+          "model": "zenmux/stepfun/step-3.7-flash-free",
           "variant": "max"
-        },
-        {
-          "model": "openai/gpt-5.5",
-          "variant": "high"
-        },
-        {
-          "model": "opencode/glm-5"
-        },
-        {
-          "model": "opencode/kimi-k2.5"
         }
       ]
     },
     "writing": {
-      "model": "opencode/deepseek-v4-flash-free",
+      "model": "opencode/north-mini-code-free",
       "fallback_models": [
-         {
-          "model": "opencode/nemotron-3-super-free",
+        {
+          "model": "opencode/deepseek-v4-flash-free",
           "variant": "high"
         },
         {
           "model": "opencode/gemini-3-flash"
         },
         {
-          "model": "anthropic/claude-sonnet-4-6"
-        },
-        {
-          "model": "github-copilot/claude-sonnet-4.6"
-        },
-        {
-          "model": "opencode/claude-sonnet-4-6"
+          "model": "google/antigravity-claude-sonnet-4-6"
         }
       ]
     }
   },
+  "disabled_mcps": [],
   "google_auth": false
 }
