@@ -1,8 +1,19 @@
 class RpcCallOptions {
   final Map<String, String>? headers;
   final Duration? timeout;
+  final String? httpPath;
+  final String? httpMethod;
+  final Map<String, dynamic>? httpQueryParams;
+  final dynamic httpBody;
 
-  const RpcCallOptions({this.headers, this.timeout});
+  const RpcCallOptions({
+    this.headers,
+    this.timeout,
+    this.httpPath,
+    this.httpMethod,
+    this.httpQueryParams,
+    this.httpBody,
+  });
 }
 
 abstract class Transport {

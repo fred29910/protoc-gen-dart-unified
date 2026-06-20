@@ -1,37 +1,55 @@
-import 'package:protobuf/protobuf.dart';import 'package:dio/dio.dart';import '../userservice.pb.dart';abstract class UserService {Future<.user.v1.User> getUser(.user.v1.GetUserRequest request);
-Future<.user.v1.User> createUser(.user.v1.CreateUserRequest request);
- }
+// ignore_for_file: type=lint
+import 'package:protoc_gen_dart_unified/src/runtime/transport.dart';
+import 'package:protoc_gen_dart_unified/src/runtime/client_options.dart';
+import 'package:protoc_gen_dart_unified/src/runtime/transport_factory.dart';
+import '../user.pb.dart';
 
-class UnifiedUserService implements UserService {UnifiedUserService(this._transport);
+abstract class UserService {
+  Future<User> getUser(GetUserRequest request);
+  Future<User> createUser(CreateUserRequest request);
+}
 
-final Transport _transport;
+class UnifiedUserService implements UserService {
+  UnifiedUserService(this._transport);
 
-@override Future<.user.v1.User> getUser(.user.v1.GetUserRequest request) {     // HTTP get /v1/users/${request.id}
-    // No body
-    final response = await _transport.unaryCall<.user.v1.User>(
+  final Transport _transport;
+
+  @override
+  Future<User> getUser(GetUserRequest request) async {
+    // HTTP get /v1/users/{id}
+    final response = await _transport.unaryCall<User>(
       'UserService',
       'getUser',
       request,
+      options: RpcCallOptions(
+        httpMethod: 'get',
+        httpPath: '/v1/users/${request.id}',
+      ),
     );
     return response;
-     } 
-@override Future<.user.v1.User> createUser(.user.v1.CreateUserRequest request) {     // HTTP post /v1/users
-    // Body: data: request.toProto3Json()
-    final response = await _transport.unaryCall<.user.v1.User>(
+  }
+
+  @override
+  Future<User> createUser(CreateUserRequest request) async {
+    // HTTP post /v1/users
+    final response = await _transport.unaryCall<User>(
       'UserService',
       'createUser',
       request,
+      options: RpcCallOptions(
+        httpMethod: 'post',
+        httpPath: '/v1/users',
+        httpBody: request.toProto3Json(),
+        httpQueryParams: {'name': request.name, 'email': request.email},
+      ),
     );
     return response;
-     } 
- }
+  }
+}
 
-class ApiSdk {ApiSdk(this._options) {           final transport = createTransport(_options.endpoint);
-          userService = UnifiedUserService(transport);
-           }
+class ApiSdk {
+  ApiSdk(ClientOptions options)
+    : userService = UnifiedUserService(createTransport(options.endpoint)!);
 
-final ClientOptions _options;
-
-UserService userService;
-
- }
+  UserService userService;
+}

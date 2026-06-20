@@ -3,6 +3,8 @@ import 'package:dart_style/dart_style.dart';
 import 'package:pub_semver/pub_semver.dart';
 import '../model/service_model.dart';
 import '../model/method_model.dart';
+import '../model/message_model.dart';
+import '../builder/http_mapper.dart';
 
 /// Generates a complete service file (abstract + unified impl + ApiSdk)
 /// using code_builder AST construction.
@@ -34,22 +36,19 @@ class ServiceGenerator {
     final source = library.accept(emitter).toString();
     final formatter = DartFormatter(
         languageVersion: Version(3, 10, 0));
-    try {
-      return formatter.format(source);
-    } on FormatterException {
-      return source;
-    }
+    return formatter.format('// ignore_for_file: type=lint\n$source');
   }
 
   List<Directive> _buildDirectives() {
     final directives = <Directive>[
-      Directive.import('package:protobuf/protobuf.dart'),
-      Directive.import('package:dio/dio.dart'),
-      Directive.import('../${service.name.toLowerCase()}.pb.dart'),
+      Directive.import('package:protoc_gen_dart_unified/src/runtime/transport.dart'),
+      Directive.import('package:protoc_gen_dart_unified/src/runtime/client_options.dart'),
+      Directive.import('package:protoc_gen_dart_unified/src/runtime/transport_factory.dart'),
+      Directive.import('../${service.protoFileName.replaceAll('.proto', '.pb.dart')}'),
     ];
     if (!_useHttp) {
       directives.add(Directive.import(
-          '../${service.name.toLowerCase()}.pbgrpc.dart'));
+          '../${service.protoFileName.replaceAll('.proto', '.pbgrpc.dart')}'));
     }
     return directives;
   }
@@ -100,6 +99,7 @@ class ServiceGenerator {
       ..returns = method.isServerStreaming
           ? refer('Stream<${method.outputType}>')
           : refer('Future<${method.outputType}>')
+      ..modifier = (!_useHttp || method.isServerStreaming) ? null : MethodModifier.async
       ..requiredParameters.add(Parameter((p) => p
         ..name = 'request'
         ..type = refer(method.inputType)))
@@ -117,26 +117,6 @@ class ServiceGenerator {
           "throw UnsupportedError('$methodName has no google.api.http annotation');");
     }
 
-    final path = httpRule.path;
-    final httpMethod = httpRule.kind;
-
-    // Build path interpolation
-    var interpolatedPath = path;
-    final regex = RegExp(r'\{([^}]+)\}');
-    for (final match in regex.allMatches(path)) {
-      final field = match.group(1)!;
-      final cleanField = field.contains('=') ? field.split('=')[0] : field;
-      interpolatedPath = interpolatedPath
-          .replaceFirst('{$field}', '\${request.$cleanField}');
-    }
-
-    // Build body code
-    final bodyCode = httpRule.body == '*'
-        ? 'data: request.toProto3Json()'
-        : httpRule.body.isNotEmpty
-            ? 'data: request.${httpRule.body}.toProto3Json()'
-            : '';
-
     if (method.isServerStreaming) {
       return Code('''
       // TODO: HTTP server streaming (SSE) — Phase 3
@@ -144,13 +124,50 @@ class ServiceGenerator {
       ''');
     }
 
+    final inputMessage = service.messages.firstWhere(
+        (m) => m.name == method.inputType,
+        orElse: () => MessageModel(name: method.inputType, fullName: method.inputType, fields: []));
+
+    final pathMapping = HttpMapper.mapPath(httpRule.path, inputMessage.fields);
+    final bodyMapping = HttpMapper.resolveBody(inputMessage.fields, httpRule.body);
+    final queryFields = HttpMapper.flattenQuery(inputMessage.fields, pathMapping.pathFieldNames.toSet(), bodyMapping.kind == 'field' ? bodyMapping.fieldName ?? '' : '');
+
+    final pathInterpolation = StringBuffer();
+    for (var i = 0; i < pathMapping.literalSegments.length; i++) {
+      pathInterpolation.write(pathMapping.literalSegments[i]);
+      if (i < pathMapping.pathFieldNames.length) {
+        pathInterpolation.write('\${request.${pathMapping.pathFieldNames[i]}}');
+      }
+    }
+
+    String bodyCode = '';
+    if (bodyMapping.kind == 'all') {
+      bodyCode = 'httpBody: request.toProto3Json(),';
+    } else if (bodyMapping.kind == 'field') {
+      bodyCode = 'httpBody: request.${bodyMapping.fieldName}.toProto3Json(),';
+    }
+
+    String queryCode = '';
+    if (queryFields.isNotEmpty) {
+      queryCode = 'httpQueryParams: {';
+      for (final qf in queryFields) {
+        queryCode += "'${qf.name}': request.${qf.dartAccessor}, ";
+      }
+      queryCode += '},';
+    }
+
     return Code('''
-    // HTTP $httpMethod $interpolatedPath
-    ${bodyCode.isNotEmpty ? '// Body: $bodyCode' : '// No body'}
+    // HTTP ${httpRule.kind} ${httpRule.path}
     final response = await _transport.unaryCall<${method.outputType}>(
       '${service.name}',
       '$methodName',
       request,
+      options: RpcCallOptions(
+        httpMethod: '${httpRule.kind}',
+        httpPath: '$pathInterpolation',
+        $bodyCode
+        $queryCode
+      ),
     );
     return response;
     ''');
@@ -185,21 +202,14 @@ class ServiceGenerator {
     return Class((b) => b
       ..name = 'ApiSdk'
       ..fields.add(Field((f) => f
-        ..name = '_options'
-        ..type = refer('ClientOptions')
-        ..modifier = FieldModifier.final$))
-      ..fields.add(Field((f) => f
         ..name = serviceFieldName
-        ..type = refer(service.name)
-        ..late = true))
+        ..type = refer(service.name)))
       ..constructors.add(Constructor((c) => c
         ..requiredParameters.add(Parameter((p) => p
-          ..name = '_options'
-          ..toThis = true))
-          ..body = Code('''
-          final transport = createTransport(_options.endpoint);
-          $serviceFieldName = Unified${service.name}(transport);
-          '''))));
+          ..name = 'options'
+          ..type = refer('ClientOptions')))
+        ..initializers.add(Code(
+            '$serviceFieldName = Unified${service.name}(createTransport(options.endpoint)!)')))));
   }
 
   /// Converts proto method name to Dart method name (PascalCase → camelCase).

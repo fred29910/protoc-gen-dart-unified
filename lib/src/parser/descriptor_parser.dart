@@ -21,8 +21,8 @@ class DescriptorParser {
           final httpRule = _extractHttpRule(m, registry);
           return MethodModel(
             name: m.name,
-            inputType: m.inputType,
-            outputType: m.outputType,
+            inputType: _stripTypeName(m.inputType),
+            outputType: _stripTypeName(m.outputType),
             httpRule: httpRule,
             isServerStreaming: m.serverStreaming,
             isClientStreaming: m.clientStreaming,
@@ -30,6 +30,7 @@ class DescriptorParser {
         }).toList();
         services.add(ServiceModel(
           name: service.name,
+          protoFileName: file.name,
           methods: methods,
           messages: messages,
         ));
@@ -71,9 +72,15 @@ class DescriptorParser {
       final httpRule = options.getExtension(Annotations.http);
       if (httpRule == null) return null;
       return _mapHttpRule(httpRule as http_rule.HttpRule);
-    } catch (_) {
-      return null;
+    } catch (e) {
+      throw StateError('Failed to parse HttpRule for method ${method.name}: $e');
     }
+  }
+
+  String _stripTypeName(String typeName) {
+    if (typeName.isEmpty) return typeName;
+    final parts = typeName.split('.');
+    return parts.last;
   }
 
   /// Maps protobuf HttpRule to internal HttpRuleModel.

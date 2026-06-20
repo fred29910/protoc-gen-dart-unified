@@ -32,9 +32,9 @@ void main() {
 
       final content = response.file.first.content;
       // Verify the abstract interface has Stream<User> return type
-      expect(content, contains('Stream<.user.v1.User> listUsers('));
+      expect(content, contains('Stream<User> listUsers('));
       // Verify the implementation also has Stream<User>
-      expect(content, contains('Stream<.user.v1.User> listUsers('));
+      expect(content, contains('Stream<User> listUsers('));
     });
 
     test('generates Future<T> return type for unary methods', () {
@@ -58,9 +58,9 @@ void main() {
       expect(response.error, isEmpty);
       final content = response.file.first.content;
       // Verify Future<User> return type for unary method
-      expect(content, contains('Future<.user.v1.User> getUser('));
+      expect(content, contains('Future<User> getUser('));
       // Verify it does NOT have Stream
-      expect(content, isNot(contains('Stream<.user.v1.User> getUser(')));
+      expect(content, isNot(contains('Stream<User> getUser(')));
     });
 
     test('generates service with mixed streaming and unary methods', () {
@@ -92,9 +92,9 @@ void main() {
       expect(response.error, isEmpty);
       final content = response.file.first.content;
       // Unary method: Future
-      expect(content, contains('Future<.user.v1.User> getUser('));
+      expect(content, contains('Future<User> getUser('));
       // Server streaming method: Stream
-      expect(content, contains('Stream<.user.v1.User> listUsers('));
+      expect(content, contains('Stream<User> listUsers('));
     });
   });
 }

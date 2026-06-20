@@ -68,6 +68,43 @@ void main() {
                 'Run with UPDATE_GOLDENS=1 to update.');
       }
     });
+
+    test('golden file compiles successfully', () async {
+      final goldenFile = File('test/goldens/user_service.dart.golden');
+      expect(goldenFile.existsSync(), isTrue);
+      final content = goldenFile.readAsStringSync();
+
+      final tempDir = Directory.systemTemp.createTempSync('golden_test_');
+      try {
+        final libDir = Directory('${tempDir.path}/lib')..createSync();
+        File('${libDir.path}/user_service.dart').writeAsStringSync(content);
+        
+        File('${libDir.path}/user.pb.dart').writeAsStringSync('''
+class GetUserRequest { int get id => 0; }
+class CreateUserRequest { String get name => ""; String get email => ""; Object toProto3Json() => {}; }
+class User {}
+''');
+
+        File('${tempDir.path}/pubspec.yaml').writeAsStringSync('''
+name: temp_golden
+environment:
+  sdk: '>=3.1.0 <4.0.0'
+dependencies:
+  protobuf: any
+  dio: any
+  protoc_gen_dart_unified:
+    path: ${Directory.current.path}
+''');
+
+        final pubResult = await Process.run('dart', ['pub', 'get'], workingDirectory: tempDir.path);
+        expect(pubResult.exitCode, 0, reason: 'pub get failed: ${pubResult.stderr}');
+
+        final analyzeResult = await Process.run('dart', ['analyze', 'lib/user_service.dart'], workingDirectory: tempDir.path);
+        expect(analyzeResult.exitCode, 0, reason: 'Analyzer failed: \n${analyzeResult.stdout}\n${analyzeResult.stderr}');
+      } finally {
+        tempDir.deleteSync(recursive: true);
+      }
+    }, timeout: const Timeout(Duration(minutes: 2)));
   });
 }
 
