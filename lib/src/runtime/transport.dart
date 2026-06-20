@@ -12,4 +12,11 @@ abstract class Transport {
     Object request, {
     RpcCallOptions? options,
   });
+
+  Stream<T> serverStream<T>(
+    String serviceName,
+    String methodName,
+    Object request, {
+    RpcCallOptions? options,
+  });
 }
