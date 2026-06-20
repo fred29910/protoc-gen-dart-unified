@@ -35,7 +35,7 @@
 - 可 `dart pub get` 的工程骨架
 - 通过 `dart analyze` 零告警
 
-- [ ] **Step 1: 创建 pubspec.yaml**
+- [x] **Step 1: 创建 pubspec.yaml**
 
 ```yaml
 name: protoc_gen_dart_unified
@@ -62,7 +62,7 @@ executables:
   protoc_gen_dart_unified:
 ```
 
-- [ ] **Step 2: 创建 analysis_options.yaml**
+- [x] **Step 2: 创建 analysis_options.yaml**
 
 ```yaml
 include: package:lints/recommended.yaml
@@ -82,7 +82,7 @@ analyzer:
     strict-raw-types: true
 ```
 
-- [ ] **Step 3: 创建 lib/protoc_gen_dart_unified.dart（空库导出桩）**
+- [x] **Step 3: 创建 lib/protoc_gen_dart_unified.dart（空库导出桩）**
 
 ```dart
 /// A unified RPC SDK generator for Dart/Flutter (HTTP + gRPC).
@@ -91,7 +91,7 @@ library protoc_gen_dart_unified;
 export 'src/generator.dart';
 ```
 
-- [ ] **Step 4: 创建 bin/protoc_gen_dart_unified.dart（空入口桩）**
+- [x] **Step 4: 创建 bin/protoc_gen_dart_unified.dart（空入口桩）**
 
 ```dart
 // ignore_for_file: avoid_print
@@ -105,7 +105,7 @@ Future<void> main(List<String> args) async {
 }
 ```
 
-- [ ] **Step 5: 创建 test/protoc_gen_dart_unified_test.dart（空测试桩）**
+- [x] **Step 5: 创建 test/protoc_gen_dart_unified_test.dart（空测试桩）**
 
 ```dart
 import 'package:test/test.dart';
@@ -119,22 +119,22 @@ void main() {
 }
 ```
 
-- [ ] **Step 6: 运行 `dart pub get` 验证依赖解析**
+- [x] **Step 6: 运行 `dart pub get` 验证依赖解析**
 
 Run: `cd /opt/codes/workspace/kratostool/protoc-gen-dart-unified && dart pub get`
 Expected: 依赖全部解析成功，无冲突
 
-- [ ] **Step 7: 运行 `dart analyze` 验证初始状态**
+- [x] **Step 7: 运行 `dart analyze` 验证初始状态**
 
 Run: `cd /opt/codes/workspace/kratostool/protoc-gen-dart-unified && dart analyze`
 Expected: 零告警（仅有 info 级别的 TODO 提示可接受）
 
-- [ ] **Step 8: 运行 `dart test` 验证测试桩通过**
+- [x] **Step 8: 运行 `dart test` 验证测试桩通过**
 
 Run: `cd /opt/codes/workspace/kratostool/protoc-gen-dart-unified && dart test`
 Expected: 1 test passed
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 cd /opt/codes/workspace/kratostool/protoc-gen-dart-unified
@@ -157,7 +157,7 @@ git commit -m "feat: scaffold Dart protoc plugin package with dependencies"
 **Consumes:** Task 1 的骨架
 **Produces:** 可读取 CodeGeneratorRequest 并遍历 service/method 的生成器；内部模型类
 
-- [ ] **Step 1: 创建 HttpRuleModel**
+- [x] **Step 1: 创建 HttpRuleModel**
 
 `lib/src/model/http_rule_model.dart`:
 
@@ -180,7 +180,7 @@ class HttpRuleModel {
 }
 ```
 
-- [ ] **Step 2: 创建 MethodModel**
+- [x] **Step 2: 创建 MethodModel**
 
 `lib/src/model/method_model.dart`:
 
@@ -202,7 +202,7 @@ class MethodModel {
 }
 ```
 
-- [ ] **Step 3: 创建 ServiceModel**
+- [x] **Step 3: 创建 ServiceModel**
 
 `lib/src/model/service_model.dart`:
 
@@ -220,7 +220,7 @@ class ServiceModel {
 }
 ```
 
-- [ ] **Step 4: 创建 DescriptorParser**
+- [x] **Step 4: 创建 DescriptorParser**
 
 `lib/src/parser/descriptor_parser.dart`:
 
@@ -251,7 +251,7 @@ class DescriptorParser {
 }
 ```
 
-- [ ] **Step 5: 创建 CodeGenerator（核心协调器）**
+- [x] **Step 5: 创建 CodeGenerator（核心协调器）**
 
 `lib/src/generator.dart`:
 
@@ -309,7 +309,7 @@ Future<void> runCodeGenerator() async {
 }
 ```
 
-- [ ] **Step 6: 更新 bin/protoc_gen_dart_unified.dart 入口**
+- [x] **Step 6: 更新 bin/protoc_gen_dart_unified.dart 入口**
 
 Replace the entire `bin/protoc_gen_dart_unified.dart` with:
 
@@ -321,17 +321,17 @@ Future<void> main(List<String> args) async {
 }
 ```
 
-- [ ] **Step 7: 运行 `dart analyze` 验证**
+- [x] **Step 7: 运行 `dart analyze` 验证**
 
 Run: `cd /opt/codes/workspace/kratostool/protoc-gen-dart-unified && dart analyze`
 Expected: 零告警
 
-- [ ] **Step 8: 运行 `dart test` 验证**
+- [x] **Step 8: 运行 `dart test` 验证**
 
 Run: `cd /opt/codes/workspace/kratostool/protoc-gen-dart-unified && dart test`
 Expected: tests pass
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 cd /opt/codes/workspace/kratostool/protoc-gen-dart-unified
@@ -353,7 +353,7 @@ git commit -m "feat: implement plugin entrypoint and descriptor traversal core"
 **Consumes:** Task 2 的 parser 和模型
 **Produces:** 可从 MethodOptions 中正确提取 `google.api.http` 注解的代码；专项测试证明注解不会静默丢失
 
-- [ ] **Step 1: 创建 google/api/http.proto fixture**
+- [x] **Step 1: 创建 google/api/http.proto fixture**
 
 `test/fixtures/google/api/http.proto`:
 
@@ -386,7 +386,7 @@ message HttpRule {
 }
 ```
 
-- [ ] **Step 2: 创建 ExtensionRegistry 封装**
+- [x] **Step 2: 创建 ExtensionRegistry 封装**
 
 `lib/src/parser/extension_registry.dart`:
 
@@ -411,7 +411,7 @@ ExtensionRegistry createHttpExtensionRegistry() {
 }
 ```
 
-- [ ] **Step 3: 更新 DescriptorParser 注入 ExtensionRegistry**
+- [x] **Step 3: 更新 DescriptorParser 注入 ExtensionRegistry**
 
 Modify `lib/src/parser/descriptor_parser.dart`:
 
@@ -454,7 +454,7 @@ class DescriptorParser {
 }
 ```
 
-- [ ] **Step 4: 创建 ExtensionRegistry 专项测试**
+- [x] **Step 4: 创建 ExtensionRegistry 专项测试**
 
 `test/parser/extension_registry_test.dart`:
 
@@ -479,17 +479,17 @@ void main() {
 }
 ```
 
-- [ ] **Step 5: 运行 `dart analyze` 验证**
+- [x] **Step 5: 运行 `dart analyze` 验证**
 
 Run: `cd /opt/codes/workspace/kratostool/protoc-gen-dart-unified && dart analyze`
 Expected: 零告警
 
-- [ ] **Step 6: 运行 `dart test` 验证**
+- [x] **Step 6: 运行 `dart test` 验证**
 
 Run: `cd /opt/codes/workspace/kratostool/protoc-gen-dart-unified && dart test`
 Expected: tests pass
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 cd /opt/codes/workspace/kratostool/protoc-gen-dart-unified
@@ -513,7 +513,7 @@ git commit -m "feat: add ExtensionRegistry scaffolding for google.api.http custo
 **Consumes:** Task 2 的 generator 核心
 **Produces:** runtime contract 类型定义；gRPC→HTTP 状态码映射表 17 个 canonical code
 
-- [ ] **Step 1: 创建 Protocol 枚举**
+- [x] **Step 1: 创建 Protocol 枚举**
 
 `lib/src/runtime/protocol.dart`:
 
@@ -525,7 +525,7 @@ enum Protocol {
 }
 ```
 
-- [ ] **Step 2: 创建 ClientOptions**
+- [x] **Step 2: 创建 ClientOptions**
 
 `lib/src/runtime/client_options.dart`:
 
@@ -545,7 +545,7 @@ class ClientOptions {
 }
 ```
 
-- [ ] **Step 3: 创建 Transport 抽象**
+- [x] **Step 3: 创建 Transport 抽象**
 
 `lib/src/runtime/transport.dart`:
 
@@ -561,7 +561,7 @@ abstract class Transport {
 }
 ```
 
-- [ ] **Step 4: 创建 RpcInterceptor 抽象**
+- [x] **Step 4: 创建 RpcInterceptor 抽象**
 
 `lib/src/runtime/rpc_interceptor.dart`:
 
@@ -576,7 +576,7 @@ abstract class RpcInterceptor {
 }
 ```
 
-- [ ] **Step 5: 创建 ApiException 体系**
+- [x] **Step 5: 创建 ApiException 体系**
 
 `lib/src/runtime/api_exception.dart`:
 
@@ -656,7 +656,7 @@ class FailedPreconditionException extends ApiException {
 }
 ```
 
-- [ ] **Step 6: 创建 gRPC→HTTP 状态码映射表**
+- [x] **Step 6: 创建 gRPC→HTTP 状态码映射表**
 
 `lib/src/runtime/http_status_mapping.dart`:
 
@@ -722,17 +722,17 @@ String grpcCodeToExceptionName(int grpcCode) {
 }
 ```
 
-- [ ] **Step 7: 运行 `dart analyze` 验证**
+- [x] **Step 7: 运行 `dart analyze` 验证**
 
 Run: `cd /opt/codes/workspace/kratostool/protoc-gen-dart-unified && dart analyze`
 Expected: 零告警
 
-- [ ] **Step 8: 运行 `dart test` 验证**
+- [x] **Step 8: 运行 `dart test` 验证**
 
 Run: `cd /opt/codes/workspace/kratostool/protoc-gen-dart-unified && dart test`
 Expected: tests pass
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 cd /opt/codes/workspace/kratostool/protoc-gen-dart-unified
@@ -754,7 +754,7 @@ git commit -m "feat: add runtime contract types and gRPC-to-HTTP status mapping 
 **Consumes:** Task 4 的 Transport 抽象
 **Produces:** conditional import transport 分层文件
 
-- [ ] **Step 1: 更新 transport.dart 添加 RpcCallOptions**
+- [x] **Step 1: 更新 transport.dart 添加 RpcCallOptions**
 
 `lib/src/runtime/transport.dart`:
 
@@ -776,7 +776,7 @@ abstract class Transport {
 }
 ```
 
-- [ ] **Step 2: 创建 transport_stub.dart**
+- [x] **Step 2: 创建 transport_stub.dart**
 
 `lib/src/runtime/transport_stub.dart`:
 
@@ -786,7 +786,7 @@ import 'transport.dart';
 Transport? createTransport(String endpoint) => null;
 ```
 
-- [ ] **Step 3: 创建 transport_native.dart**
+- [x] **Step 3: 创建 transport_native.dart**
 
 `lib/src/runtime/transport_native.dart`:
 
@@ -799,7 +799,7 @@ Transport? createTransport(String endpoint) {
 }
 ```
 
-- [ ] **Step 4: 创建 transport_web.dart**
+- [x] **Step 4: 创建 transport_web.dart**
 
 `lib/src/runtime/transport_web.dart`:
 
@@ -812,7 +812,7 @@ Transport? createTransport(String endpoint) {
 }
 ```
 
-- [ ] **Step 5: 创建 transport_factory.dart**
+- [x] **Step 5: 创建 transport_factory.dart**
 
 `lib/src/runtime/transport_factory.dart`:
 
@@ -825,12 +825,12 @@ import 'transport_stub.dart'
 Transport? createTransport(String endpoint) => impl.createTransport(endpoint);
 ```
 
-- [ ] **Step 6: 运行 `dart analyze` 验证**
+- [x] **Step 6: 运行 `dart analyze` 验证**
 
 Run: `cd /opt/codes/workspace/kratostool/protoc-gen-dart-unified && dart analyze`
 Expected: 零告警
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 cd /opt/codes/workspace/kratostool/protoc-gen-dart-unified
@@ -852,7 +852,7 @@ git commit -m "feat: add conditional import transport splitting skeleton (native
 **Consumes:** Task 2 的 generator, Task 3 的 parser
 **Produces:** golden 测试用例；DartFormatter 格式化集成；`dart test` 全绿
 
-- [ ] **Step 1: 创建 fixture proto**
+- [x] **Step 1: 创建 fixture proto**
 
 `test/fixtures/user.proto`:
 
@@ -887,7 +887,7 @@ message User {
 }
 ```
 
-- [ ] **Step 2: 创建 DartFormatter 封装**
+- [x] **Step 2: 创建 DartFormatter 封装**
 
 `lib/src/format_formatter.dart`:
 
@@ -904,7 +904,7 @@ String formatDartSource(String source) {
 }
 ```
 
-- [ ] **Step 3: 集成格式化到 generator.dart**
+- [x] **Step 3: 集成格式化到 generator.dart**
 
 Update `_generateServiceFacade` in `lib/src/generator.dart`:
 
@@ -924,7 +924,7 @@ String _generateServiceFacade(ServiceModel service) {
 }
 ```
 
-- [ ] **Step 4: 创建 golden 测试**
+- [x] **Step 4: 创建 golden 测试**
 
 `test/golden/golden_test.dart`:
 
@@ -967,17 +967,17 @@ void main() {
 }
 ```
 
-- [ ] **Step 5: 运行 `dart analyze` 验证**
+- [x] **Step 5: 运行 `dart analyze` 验证**
 
 Run: `cd /opt/codes/workspace/kratostool/protoc-gen-dart-unified && dart analyze`
 Expected: 零告警
 
-- [ ] **Step 6: 运行 `dart test` 验证**
+- [x] **Step 6: 运行 `dart test` 验证**
 
 Run: `cd /opt/codes/workspace/kratostool/protoc-gen-dart-unified && dart test`
 Expected: 所有测试通过
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 cd /opt/codes/workspace/kratostool/protoc-gen-dart-unified
