@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package user.v1;
+
+service UserService {
+  rpc GetUser(GetUserRequest) returns (User) {
+    option (google.api.http) = { get: "/v1/users/{id}" };
+  }
+
+  rpc CreateUser(CreateUserRequest) returns (User) {
+    option (google.api.http) = { post: "/v1/users", body: "*" };
+  }
+}
+
+message GetUserRequest {
+  int64 id = 1;
+}
+
+message CreateUserRequest {
+  string name = 1;
+  string email = 2;
+}
+
+message User {
+  int64 id = 1;
+  string name = 2;
+  string email = 3;
+}
