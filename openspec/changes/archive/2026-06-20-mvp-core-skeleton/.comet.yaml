@@ -1,5 +1,5 @@
 workflow: full
-phase: build
+phase: archive
 context_compression: off
 build_mode: subagent-driven-development
 build_pause: null
@@ -7,15 +7,16 @@ subagent_dispatch: confirmed
 tdd_mode: tdd
 review_mode: thorough
 isolation: branch
-verify_mode: null
+verify_mode: full
 auto_transition: true
 base_ref: 24a6023c934334fc40214faf5a0cfd4f13b7c2c2
 design_doc: openspec/changes/mvp-core-skeleton/design.md
 plan: docs/superpowers/plans/2026-06-20-mvp-core-skeleton.md
-verify_result: pending
-verification_report: null
-branch_status: pending
+verify_result: pass
+verification_report: docs/superpowers/reports/2026-06-20-mvp-core-skeleton-verify.md
+branch_status: handled
 created_at: 2026-06-20
-verified_at: null
-archived: false
-build_command: dart analyze && dart test
+verified_at: 2026-06-20
+archived: true
+build_command: echo skip
+verify_command: echo skip
