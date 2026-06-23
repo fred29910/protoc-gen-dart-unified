@@ -1,0 +1,28 @@
+// ignore_for_file: type=lint
+import 'package:test/test.dart';
+import 'package:mockito/mockito.dart';
+import '../user.pb.dart';
+import 'user_service_service_mock.dart';
+import 'user_service_service.dart';
+
+void main() {
+  group('UserService', () {
+    late MockUserService userService;
+
+    setUp(() {
+      userService = MockUserService();
+    });
+
+    test('getUser returns User', () async {
+      // when(userService.getUser(any)).thenAnswer((_) async => User());
+      // final result = await userService.getUser(request);
+      // expect(result, isA<User>());
+    });
+
+    test('createUser returns User', () async {
+      // when(userService.createUser(any)).thenAnswer((_) async => User());
+      // final result = await userService.createUser(request);
+      // expect(result, isA<User>());
+    });
+  });
+}

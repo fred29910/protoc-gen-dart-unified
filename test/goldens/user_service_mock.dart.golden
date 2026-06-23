@@ -1,0 +1,17 @@
+// ignore_for_file: type=lint
+import 'package:mockito/annotations.dart';
+import '../user.pb.dart';
+import 'user_service_service.dart';
+
+@GenerateNiceMocks([MockUserService])
+class MockUserService implements UserService {
+  @override
+  Future<User> getUser(GetUserRequest request) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<User> createUser(CreateUserRequest request) {
+    throw UnimplementedError();
+  }
+}
