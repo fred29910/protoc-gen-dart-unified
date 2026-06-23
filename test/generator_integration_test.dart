@@ -28,9 +28,12 @@ void main() {
       ));
 
       expect(response.error, isEmpty);
-      expect(response.file, hasLength(1));
+      // Default mock=true generates 3 files: service + mock + example_test
+      expect(response.file, hasLength(3));
 
-      final content = response.file.first.content;
+      final content = response.file
+          .firstWhere((f) => f.name.endsWith('_service.dart'))
+          .content;
       // Verify the abstract interface has Stream<User> return type
       expect(content, contains('Stream<User> listUsers('));
       // Verify the implementation also has Stream<User>
@@ -56,7 +59,9 @@ void main() {
       ));
 
       expect(response.error, isEmpty);
-      final content = response.file.first.content;
+      final content = response.file
+          .firstWhere((f) => f.name.endsWith('_service.dart'))
+          .content;
       // Verify Future<User> return type for unary method
       expect(content, contains('Future<User> getUser('));
       // Verify it does NOT have Stream
@@ -90,11 +95,37 @@ void main() {
       ));
 
       expect(response.error, isEmpty);
-      final content = response.file.first.content;
+      final content = response.file
+          .firstWhere((f) => f.name.endsWith('_service.dart'))
+          .content;
       // Unary method: Future
       expect(content, contains('Future<User> getUser('));
       // Server streaming method: Stream
       expect(content, contains('Stream<User> listUsers('));
+    });
+
+    test('mock=false generates only service file', () {
+      final file = FileDescriptorProto()
+        ..name = 'user.proto'
+        ..package = 'user.v1'
+        ..service.add(ServiceDescriptorProto()
+          ..name = 'UserService'
+          ..method.add(MethodDescriptorProto()
+            ..name = 'GetUser'
+            ..inputType = '.user.v1.GetUserRequest'
+            ..outputType = '.user.v1.User'
+            ..options = _buildHttpOptions('get', '/v1/users/{id}')));
+
+      final generator = CodeGenerator();
+      final response = generator.generate(CodeGeneratorRequest(
+        fileToGenerate: ['user.proto'],
+        protoFile: [file],
+        parameter: 'mock=false',
+      ));
+
+      expect(response.error, isEmpty);
+      expect(response.file, hasLength(1));
+      expect(response.file.first.name, endsWith('_service.dart'));
     });
   });
 }

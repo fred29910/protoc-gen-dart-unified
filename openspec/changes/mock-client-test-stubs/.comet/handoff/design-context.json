@@ -1,0 +1,15 @@
+{
+  "change": "mock-client-test-stubs",
+  "phase": "design",
+  "mode": "compact",
+  "canonical_spec": "openspec",
+  "generated_by": "comet-handoff.sh",
+  "context_hash": "343fbec694b9aa32c4bc6f36ef275a4fb4c5360d4920d8113686ce0e58969eeb",
+  "files": [
+    { "path": "openspec/changes/mock-client-test-stubs/proposal.md", "sha256": "809b6c32d192097da121c5391cb1db5ff95a4d142076b28c60915001f369dad6" },
+    { "path": "openspec/changes/mock-client-test-stubs/design.md", "sha256": "55e579011a760e5a560eed7a78f57065d3b51458f042b2f3bf5bbbaabaae7f2b" },
+    { "path": "openspec/changes/mock-client-test-stubs/tasks.md", "sha256": "b9d0e4b0b969ade7bdda018f65f5ce59423b27f8e8af721c10c16d56844e61e0" },
+    { "path": "openspec/changes/mock-client-test-stubs/specs/example-test-stub-generation/spec.md", "sha256": "20cd29ff75f228b83e377f542beb2f3524a554d65d1958eabb048d8471dc3a6d" },
+    { "path": "openspec/changes/mock-client-test-stubs/specs/mock-client-generation/spec.md", "sha256": "362753735af60e319a2f5b9b751c5d21dca4f4ddb74fef65d88d99fecaa9c5fb" }
+  ]
+}

@@ -49,24 +49,94 @@ void main() {
       ));
 
       expect(response.error, isEmpty);
-      expect(response.file, hasLength(1));
+      // Default mock=true generates 3 files: service + mock + example_test
+      expect(response.file, hasLength(3));
 
-      final generatedContent = response.file.first.content;
+      // Verify service file
+      final serviceFile = response.file.firstWhere(
+          (f) => f.name.endsWith('_service.dart'));
       final goldenFile = File('test/goldens/user_service.dart.golden');
 
       if (updateGoldens) {
-        // Update mode: write golden file
-        goldenFile.writeAsStringSync(generatedContent);
+        goldenFile.writeAsStringSync(serviceFile.content);
         print('Golden file updated: ${goldenFile.path}');
       } else {
-        // Compare mode: verify against golden
         expect(goldenFile.existsSync(), isTrue,
             reason: 'Golden file not found. Run with UPDATE_GOLDENS=1 to generate.');
         final expectedContent = goldenFile.readAsStringSync();
-        expect(generatedContent, equals(expectedContent),
+        expect(serviceFile.content, equals(expectedContent),
             reason: 'Generated output does not match golden file. '
                 'Run with UPDATE_GOLDENS=1 to update.');
       }
+    });
+
+    test('user.proto generates expected user_service_mock.dart', () {
+      final file = _buildUserProtoFile();
+
+      final generator = CodeGenerator();
+      final response = generator.generate(CodeGeneratorRequest(
+        fileToGenerate: ['user.proto'],
+        protoFile: [file],
+      ));
+
+      expect(response.error, isEmpty);
+      final mockFile = response.file.firstWhere(
+          (f) => f.name.endsWith('_mock.dart'));
+      final goldenFile = File('test/goldens/user_service_mock.dart.golden');
+
+      if (updateGoldens) {
+        goldenFile.writeAsStringSync(mockFile.content);
+        print('Golden file updated: ${goldenFile.path}');
+      } else {
+        expect(goldenFile.existsSync(), isTrue,
+            reason: 'Golden file not found. Run with UPDATE_GOLDENS=1 to generate.');
+        final expectedContent = goldenFile.readAsStringSync();
+        expect(mockFile.content, equals(expectedContent),
+            reason: 'Generated mock output does not match golden file. '
+                'Run with UPDATE_GOLDENS=1 to update.');
+      }
+    });
+
+    test('user.proto generates expected user_service_example_test.dart', () {
+      final file = _buildUserProtoFile();
+
+      final generator = CodeGenerator();
+      final response = generator.generate(CodeGeneratorRequest(
+        fileToGenerate: ['user.proto'],
+        protoFile: [file],
+      ));
+
+      expect(response.error, isEmpty);
+      final testFile = response.file.firstWhere(
+          (f) => f.name.endsWith('_example_test.dart'));
+      final goldenFile = File('test/goldens/user_service_example_test.dart.golden');
+
+      if (updateGoldens) {
+        goldenFile.writeAsStringSync(testFile.content);
+        print('Golden file updated: ${goldenFile.path}');
+      } else {
+        expect(goldenFile.existsSync(), isTrue,
+            reason: 'Golden file not found. Run with UPDATE_GOLDENS=1 to generate.');
+        final expectedContent = goldenFile.readAsStringSync();
+        expect(testFile.content, equals(expectedContent),
+            reason: 'Generated example_test output does not match golden file. '
+                'Run with UPDATE_GOLDENS=1 to update.');
+      }
+    });
+
+    test('mock=false disables mock and example_test generation', () {
+      final file = _buildUserProtoFile();
+
+      final generator = CodeGenerator();
+      final response = generator.generate(CodeGeneratorRequest(
+        fileToGenerate: ['user.proto'],
+        protoFile: [file],
+        parameter: 'mock=false',
+      ));
+
+      expect(response.error, isEmpty);
+      expect(response.file, hasLength(1));
+      expect(response.file.first.name, endsWith('_service.dart'));
     });
 
     test('golden file compiles successfully', () async {
