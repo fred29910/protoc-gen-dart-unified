@@ -1,3 +1,3 @@
 import 'transport.dart';
 
-Transport? createTransport(String endpoint) => null;
+Transport? createTransport(String endpoint, {dynamic grpcClient}) => null;

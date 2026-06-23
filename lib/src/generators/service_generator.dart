@@ -5,6 +5,7 @@ import '../model/service_model.dart';
 import '../model/method_model.dart';
 import '../model/message_model.dart';
 import '../builder/http_mapper.dart';
+import '../builder/query_field.dart';
 
 /// Generates a complete service file (abstract + unified impl + ApiSdk)
 /// using code_builder AST construction.
@@ -44,6 +45,7 @@ class ServiceGenerator {
       Directive.import('package:protoc_gen_dart_unified/src/runtime/transport.dart'),
       Directive.import('package:protoc_gen_dart_unified/src/runtime/client_options.dart'),
       Directive.import('package:protoc_gen_dart_unified/src/runtime/transport_factory.dart'),
+      Directive.import('package:protoc_gen_dart_unified/src/runtime/rpc_interceptor.dart'),
       Directive.import('../${service.protoFileName.replaceAll('.proto', '.pb.dart')}'),
     ];
     if (!_useHttp) {
@@ -76,17 +78,49 @@ class ServiceGenerator {
 
   /// Builds the unified service implementation.
   Class _buildUnifiedImpl() {
+    final isGrpc = !_useHttp;
+
+    final fields = <Field>[
+      Field((f) => f
+        ..name = '_transport'
+        ..type = refer('Transport')
+        ..modifier = FieldModifier.final$),
+      Field((f) => f
+        ..name = '_interceptors'
+        ..type = refer('List<RpcInterceptor>')
+        ..modifier = FieldModifier.final$),
+    ];
+
+    // For gRPC services, add a _grpcClient field for direct delegation
+    if (isGrpc) {
+      fields.add(Field((f) => f
+        ..name = '_grpcClient'
+        ..type = refer('dynamic')
+        ..modifier = FieldModifier.final$));
+    }
+
+    final ctorParams = <Parameter>[
+      Parameter((p) => p
+        ..name = '_transport'
+        ..toThis = true),
+      Parameter((p) => p
+        ..name = '_interceptors'
+        ..toThis = true),
+    ];
+
+    if (isGrpc) {
+      ctorParams.add(Parameter((p) => p
+        ..name = 'grpcClient'
+        ..type = refer('dynamic')
+        ..toThis = true));
+    }
+
     return Class((b) => b
       ..name = 'Unified${service.name}'
       ..implements.add(refer(service.name))
-      ..fields.add(Field((f) => f
-        ..name = '_transport'
-        ..type = refer('Transport')
-        ..modifier = FieldModifier.final$))
+      ..fields.addAll(fields)
       ..constructors.add(Constructor((c) => c
-        ..requiredParameters.add(Parameter((p) => p
-          ..name = '_transport'
-          ..toThis = true))))
+        ..requiredParameters.addAll(ctorParams)))
       ..methods.addAll(service.methods.map(_buildImplMethod)));
   }
 
@@ -99,38 +133,84 @@ class ServiceGenerator {
       ..returns = method.isServerStreaming
           ? refer('Stream<${method.outputType}>')
           : refer('Future<${method.outputType}>')
-      ..modifier = (!_useHttp || method.isServerStreaming) ? null : MethodModifier.async
+      ..modifier = method.isServerStreaming ? null : MethodModifier.async
       ..requiredParameters.add(Parameter((p) => p
         ..name = 'request'
         ..type = refer(method.inputType)))
-      ..body = _useHttp
-          ? _buildHttpMethodBody(method)
-          : _buildGrpcMethodBody(method));
+      ..body = _buildInterceptedMethodBody(method));
   }
 
-  Code _buildHttpMethodBody(MethodModel method) {
+  /// Builds the method body with interceptor chain.
+  Code _buildInterceptedMethodBody(MethodModel method) {
     final methodName = _dartMethodName(method.name);
-    final httpRule = method.httpRule;
 
-    if (httpRule == null) {
+    // Client/Bidi streaming: HTTP transport does not support streaming writes
+    if (method.isClientStreaming && _useHttp) {
       return Code(
-          "throw UnsupportedError('$methodName has no google.api.http annotation');");
+          "throw UnsupportedError('HTTP transport does not support client streaming for $methodName. "
+          "Use gRPC or ConnectRPC instead.');");
     }
 
     if (method.isServerStreaming) {
-      return Code('''
-      // TODO: HTTP server streaming (SSE) — Phase 3
-      throw UnimplementedError('HTTP server streaming for \$methodName not yet implemented');
-      ''');
+      // Server streaming: HTTP uses SSE, gRPC delegates to *ServiceClient
+      return _useHttp
+          ? _buildHttpServerStreamBody(method)
+          : _buildGrpcServerStreamBody(method);
     }
 
+    // Build the core call expression
+    final coreCall = _useHttp
+        ? _buildHttpUnaryCall(method)
+        : _buildGrpcUnaryCall(method);
+
+    // Wrap with interceptor chain
+    return Code('''
+    final context = InterceptorContext(
+      serviceName: '${service.name}',
+      methodName: '$methodName',
+      request: request,
+      options: ${_buildOptionsExpr(method)},
+    );
+    
+    Future<${method.outputType}> call(InterceptorContext ctx) async {
+      return await $coreCall;
+    }
+    
+    if (_interceptors.isEmpty) {
+      return call(context);
+    }
+    
+    // Build the interceptor chain
+    var chain = call;
+    for (var i = _interceptors.length - 1; i >= 0; i--) {
+      final interceptor = _interceptors[i];
+      final next = chain;
+      chain = (ctx) => interceptor.intercept(ctx, next);
+    }
+    return chain(context);
+    ''');
+  }
+
+  /// Builds the options expression for the method.
+  String _buildOptionsExpr(MethodModel method) {
+    if (_useHttp && method.httpRule != null) {
+      return _buildHttpOptionsExpr(method);
+    }
+    return 'null';
+  }
+
+  /// Builds HTTP options expression.
+  String _buildHttpOptionsExpr(MethodModel method) {
+    final httpRule = method.httpRule!;
     final inputMessage = service.messages.firstWhere(
         (m) => m.name == method.inputType,
         orElse: () => MessageModel(name: method.inputType, fullName: method.inputType, fields: []));
 
     final pathMapping = HttpMapper.mapPath(httpRule.path, inputMessage.fields);
     final bodyMapping = HttpMapper.resolveBody(inputMessage.fields, httpRule.body);
-    final queryFields = HttpMapper.flattenQuery(inputMessage.fields, pathMapping.pathFieldNames.toSet(), bodyMapping.kind == 'field' ? bodyMapping.fieldName ?? '' : '');
+    final queryFields = bodyMapping.kind == 'all'
+        ? <QueryField>[]
+        : HttpMapper.flattenQuery(inputMessage.fields, pathMapping.pathFieldNames.toSet(), bodyMapping.kind == 'field' ? bodyMapping.fieldName ?? '' : '');
 
     final pathInterpolation = StringBuffer();
     for (var i = 0; i < pathMapping.literalSegments.length; i++) {
@@ -156,48 +236,150 @@ class ServiceGenerator {
       queryCode += '},';
     }
 
+    return '''RpcCallOptions(
+        httpMethod: '${httpRule.kind}',
+        httpPath: '$pathInterpolation',
+        $bodyCode
+        $queryCode
+      )''';
+  }
+
+  /// Builds the core HTTP unary call expression (returns the expression string).
+  String _buildHttpUnaryCall(MethodModel method) {
+    final methodName = _dartMethodName(method.name);
+    final httpRule = method.httpRule;
+
+    if (httpRule == null) {
+      return "throw UnsupportedError('$methodName has no google.api.http annotation')";
+    }
+
+    // When response_body is set, we need to extract a specific field from the response
+    if (httpRule.responseBody.isNotEmpty) {
+      return '''_transport.unaryCall<Map<String, dynamic>>(
+      '${service.name}',
+      '$methodName',
+      request,
+      options: ctx.options,
+    ).then((response) => ${method.outputType}.fromProto3Json(response['${httpRule.responseBody}']) as ${method.outputType})''';
+    }
+
+    return '''_transport.unaryCall<${method.outputType}>(
+      '${service.name}',
+      '$methodName',
+      request,
+      options: ctx.options,
+    )''';
+  }
+
+  /// Builds the core gRPC unary call expression.
+  String _buildGrpcUnaryCall(MethodModel method) {
+    final methodName = _dartMethodName(method.name);
+    return '''_transport.unaryCall<${method.outputType}>(
+      '${service.name}',
+      '$methodName',
+      request,
+    )''';
+  }
+
+  /// Builds HTTP server streaming body (SSE).
+  Code _buildHttpServerStreamBody(MethodModel method) {
+    final methodName = _dartMethodName(method.name);
+    final httpRule = method.httpRule;
+
+    if (httpRule == null) {
+      return Code(
+          "throw UnsupportedError('$methodName has no google.api.http annotation');");
+    }
+
+    // Build options for SSE
+    final inputMessage = service.messages.firstWhere(
+        (m) => m.name == method.inputType,
+        orElse: () => MessageModel(name: method.inputType, fullName: method.inputType, fields: []));
+
+    final pathMapping = HttpMapper.mapPath(httpRule.path, inputMessage.fields);
+    final queryFields = HttpMapper.flattenQuery(inputMessage.fields, pathMapping.pathFieldNames.toSet(), '');
+
+    final pathInterpolation = StringBuffer();
+    for (var i = 0; i < pathMapping.literalSegments.length; i++) {
+      pathInterpolation.write(pathMapping.literalSegments[i]);
+      if (i < pathMapping.pathFieldNames.length) {
+        pathInterpolation.write('\${request.${pathMapping.pathFieldNames[i]}}');
+      }
+    }
+
+    String queryCode = '';
+    if (queryFields.isNotEmpty) {
+      queryCode = 'httpQueryParams: {';
+      for (final qf in queryFields) {
+        queryCode += "'${qf.name}': request.${qf.dartAccessor}, ";
+      }
+      queryCode += '},';
+    }
+
+    // Note: additional_bindings are not used in client code generation.
+    // The client always uses the primary binding.
+    final additionalBindingsComment = httpRule.additionalBindings.isNotEmpty
+        ? ' // additional bindings: ${httpRule.additionalBindings.map((b) => '${b.kind} ${b.path}').join(', ')}'
+        : '';
+
     return Code('''
-    // HTTP ${httpRule.kind} ${httpRule.path}
-    final response = await _transport.unaryCall<${method.outputType}>(
+    // HTTP SSE server streaming: ${httpRule.kind} ${httpRule.path}$additionalBindingsComment
+    return _transport.serverStream<${method.outputType}>(
       '${service.name}',
       '$methodName',
       request,
       options: RpcCallOptions(
         httpMethod: '${httpRule.kind}',
         httpPath: '$pathInterpolation',
-        $bodyCode
         $queryCode
       ),
     );
-    return response;
     ''');
   }
 
-  Code _buildGrpcMethodBody(MethodModel method) {
+  /// Builds gRPC server streaming body — delegates to generated *ServiceClient.
+  Code _buildGrpcServerStreamBody(MethodModel method) {
     final methodName = _dartMethodName(method.name);
-
-    if (method.isServerStreaming) {
-      return Code('''
-      return _transport.serverStream<${method.outputType}>(
-        '${service.name}',
-        '$methodName',
-        request,
-      );
-      ''');
-    }
-
+    // gRPC server streaming delegates to the generated *ServiceClient
+    // which returns ResponseStream<T> (a Stream<T>).
+    // The generated *ServiceClient is imported from *.pbgrpc.dart.
     return Code('''
-    return _transport.unaryCall<${method.outputType}>(
-      '${service.name}',
-      '$methodName',
-      request,
-    );
+    // gRPC server streaming via generated *ServiceClient
+    final client = _grpcClient as dynamic;
+    return client.$methodName(request) as Stream<${method.outputType}>;
     ''');
   }
 
   /// Builds the ApiSdk entry class.
   Class _buildApiSdk() {
     final serviceFieldName = _dartMethodName(service.name);
+    final isGrpc = !_useHttp;
+
+    final ctorParams = <Parameter>[
+      Parameter((p) => p
+        ..name = 'options'
+        ..type = refer('ClientOptions')
+        ..named = true
+        ..required = true),
+      Parameter((p) => p
+        ..name = 'interceptors'
+        ..type = refer('List<RpcInterceptor>')
+        ..defaultTo = const Code('const []')
+        ..named = true),
+    ];
+
+    // For gRPC services, add optional grpcClient parameter
+    if (isGrpc) {
+      ctorParams.add(Parameter((p) => p
+        ..name = 'grpcClient'
+        ..type = refer('dynamic')
+        ..defaultTo = const Code('null')
+        ..named = true));
+    }
+
+    final ctorInit = isGrpc
+        ? '$serviceFieldName = Unified${service.name}(createTransport(options.endpoint, grpcClient: grpcClient)!, interceptors, grpcClient)'
+        : '$serviceFieldName = Unified${service.name}(createTransport(options.endpoint)!, interceptors)';
 
     return Class((b) => b
       ..name = 'ApiSdk'
@@ -205,11 +387,8 @@ class ServiceGenerator {
         ..name = serviceFieldName
         ..type = refer(service.name)))
       ..constructors.add(Constructor((c) => c
-        ..requiredParameters.add(Parameter((p) => p
-          ..name = 'options'
-          ..type = refer('ClientOptions')))
-        ..initializers.add(Code(
-            '$serviceFieldName = Unified${service.name}(createTransport(options.endpoint)!)')))));
+        ..optionalParameters.addAll(ctorParams)
+        ..initializers.add(Code(ctorInit)))));
   }
 
   /// Converts proto method name to Dart method name (PascalCase → camelCase).

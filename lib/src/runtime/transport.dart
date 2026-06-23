@@ -1,20 +1,6 @@
-class RpcCallOptions {
-  final Map<String, String>? headers;
-  final Duration? timeout;
-  final String? httpPath;
-  final String? httpMethod;
-  final Map<String, dynamic>? httpQueryParams;
-  final dynamic httpBody;
+import 'rpc_call_options.dart';
 
-  const RpcCallOptions({
-    this.headers,
-    this.timeout,
-    this.httpPath,
-    this.httpMethod,
-    this.httpQueryParams,
-    this.httpBody,
-  });
-}
+export 'rpc_call_options.dart';
 
 abstract class Transport {
   Future<T> unaryCall<T>(

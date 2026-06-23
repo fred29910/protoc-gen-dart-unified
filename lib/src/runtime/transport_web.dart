@@ -5,7 +5,7 @@ import 'api_exception.dart';
 /// Creates a transport for web platforms.
 ///
 /// Web only supports HTTP transport (no gRPC).
-Transport? createTransport(String endpoint) {
+Transport? createTransport(String endpoint, {dynamic grpcClient}) {
   return HttpTransport(endpoint);
 }
 
@@ -25,7 +25,7 @@ class HttpTransport implements Transport {
     try {
       final method = options?.httpMethod ?? 'POST';
       final path = options?.httpPath ?? '/$serviceName/$methodName';
-      final data = options?.httpBody ?? request;
+      final data = options?.httpBody;
       final queryParameters = options?.httpQueryParams;
 
       final response = await _dio.request<dynamic>(
@@ -52,6 +52,7 @@ class HttpTransport implements Transport {
     Object request, {
     RpcCallOptions? options,
   }) {
+    // Phase 3: SSE streaming
     throw UnimplementedError(
         'HTTP server streaming requires SSE, deferred to Phase 3');
   }

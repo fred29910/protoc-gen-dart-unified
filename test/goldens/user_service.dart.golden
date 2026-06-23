@@ -2,6 +2,7 @@
 import 'package:protoc_gen_dart_unified/src/runtime/transport.dart';
 import 'package:protoc_gen_dart_unified/src/runtime/client_options.dart';
 import 'package:protoc_gen_dart_unified/src/runtime/transport_factory.dart';
+import 'package:protoc_gen_dart_unified/src/runtime/rpc_interceptor.dart';
 import '../user.pb.dart';
 
 abstract class UserService {
@@ -10,46 +11,92 @@ abstract class UserService {
 }
 
 class UnifiedUserService implements UserService {
-  UnifiedUserService(this._transport);
+  UnifiedUserService(this._transport, this._interceptors);
 
   final Transport _transport;
 
+  final List<RpcInterceptor> _interceptors;
+
   @override
   Future<User> getUser(GetUserRequest request) async {
-    // HTTP get /v1/users/{id}
-    final response = await _transport.unaryCall<User>(
-      'UserService',
-      'getUser',
-      request,
+    final context = InterceptorContext(
+      serviceName: 'UserService',
+      methodName: 'getUser',
+      request: request,
       options: RpcCallOptions(
         httpMethod: 'get',
         httpPath: '/v1/users/${request.id}',
       ),
     );
-    return response;
+
+    Future<User> call(InterceptorContext ctx) async {
+      return await _transport.unaryCall<User>(
+        'UserService',
+        'getUser',
+        request,
+        options: ctx.options,
+      );
+    }
+
+    if (_interceptors.isEmpty) {
+      return call(context);
+    }
+
+    // Build the interceptor chain
+    var chain = call;
+    for (var i = _interceptors.length - 1; i >= 0; i--) {
+      final interceptor = _interceptors[i];
+      final next = chain;
+      chain = (ctx) => interceptor.intercept(ctx, next);
+    }
+    return chain(context);
   }
 
   @override
   Future<User> createUser(CreateUserRequest request) async {
-    // HTTP post /v1/users
-    final response = await _transport.unaryCall<User>(
-      'UserService',
-      'createUser',
-      request,
+    final context = InterceptorContext(
+      serviceName: 'UserService',
+      methodName: 'createUser',
+      request: request,
       options: RpcCallOptions(
         httpMethod: 'post',
         httpPath: '/v1/users',
         httpBody: request.toProto3Json(),
-        httpQueryParams: {'name': request.name, 'email': request.email},
       ),
     );
-    return response;
+
+    Future<User> call(InterceptorContext ctx) async {
+      return await _transport.unaryCall<User>(
+        'UserService',
+        'createUser',
+        request,
+        options: ctx.options,
+      );
+    }
+
+    if (_interceptors.isEmpty) {
+      return call(context);
+    }
+
+    // Build the interceptor chain
+    var chain = call;
+    for (var i = _interceptors.length - 1; i >= 0; i--) {
+      final interceptor = _interceptors[i];
+      final next = chain;
+      chain = (ctx) => interceptor.intercept(ctx, next);
+    }
+    return chain(context);
   }
 }
 
 class ApiSdk {
-  ApiSdk(ClientOptions options)
-    : userService = UnifiedUserService(createTransport(options.endpoint)!);
+  ApiSdk({
+    required ClientOptions options,
+    List<RpcInterceptor> interceptors = const [],
+  }) : userService = UnifiedUserService(
+         createTransport(options.endpoint)!,
+         interceptors,
+       );
 
   UserService userService;
 }
