@@ -19,7 +19,7 @@ class CodeGenerator {
         final serviceGenerator = ServiceGenerator(service);
         final serviceContent = serviceGenerator.generate();
         files.add(CodeGeneratorResponse_File(
-          name: '${_dartServiceName(service.name)}_service.dart',
+          name: '${_dartServiceName(service.name)}.dart',
           content: serviceContent,
         ));
 

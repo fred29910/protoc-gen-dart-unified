@@ -64,3 +64,4 @@ desktop.ini
 .env
 .env.local
 .env.*.local
+bin/protoc-gen-dart-unified

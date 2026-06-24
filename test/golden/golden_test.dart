@@ -54,7 +54,7 @@ void main() {
 
       // Verify service file
       final serviceFile = response.file.firstWhere(
-          (f) => f.name.endsWith('_service.dart'));
+          (f) => f.name == 'user_service.dart');
       final goldenFile = File('test/goldens/user_service.dart.golden');
 
       if (updateGoldens) {
@@ -136,7 +136,7 @@ void main() {
 
       expect(response.error, isEmpty);
       expect(response.file, hasLength(1));
-      expect(response.file.first.name, endsWith('_service.dart'));
+      expect(response.file.first.name, equals('user_service.dart'));
     });
 
     test('golden file compiles successfully', () async {

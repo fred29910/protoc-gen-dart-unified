@@ -32,7 +32,7 @@ void main() {
       expect(response.file, hasLength(3));
 
       final content = response.file
-          .firstWhere((f) => f.name.endsWith('_service.dart'))
+          .firstWhere((f) => f.name == 'user_service.dart')
           .content;
       // Verify the abstract interface has Stream<User> return type
       expect(content, contains('Stream<User> listUsers('));
@@ -60,7 +60,7 @@ void main() {
 
       expect(response.error, isEmpty);
       final content = response.file
-          .firstWhere((f) => f.name.endsWith('_service.dart'))
+          .firstWhere((f) => f.name == 'user_service.dart')
           .content;
       // Verify Future<User> return type for unary method
       expect(content, contains('Future<User> getUser('));
@@ -96,7 +96,7 @@ void main() {
 
       expect(response.error, isEmpty);
       final content = response.file
-          .firstWhere((f) => f.name.endsWith('_service.dart'))
+          .firstWhere((f) => f.name == 'user_service.dart')
           .content;
       // Unary method: Future
       expect(content, contains('Future<User> getUser('));
@@ -125,7 +125,7 @@ void main() {
 
       expect(response.error, isEmpty);
       expect(response.file, hasLength(1));
-      expect(response.file.first.name, endsWith('_service.dart'));
+      expect(response.file.first.name, equals('user_service.dart'));
     });
   });
 }
