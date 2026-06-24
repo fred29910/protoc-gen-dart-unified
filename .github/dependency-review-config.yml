@@ -1,0 +1,27 @@
+# Dependency Review Configuration
+# https://github.com/actions/dependency-review-action#configuration-options
+
+# Fail on vulnerabilities with severity level
+fail-on-severity: moderate
+
+# Allow specific vulnerabilities by GHSA ID (use sparingly)
+allow-ghsas: []
+
+# Allow specific vulnerable packages with reasoning
+# Example:
+# allow-vulnerable-packages:
+#   - package: "package-name"
+#     reason: "No fix available yet, tracked in issue #123"
+#     advisory-ids: ["GHSA-xxxx-xxxx-xxxx"]
+
+# Configuration for license scanning
+# licenses:
+#   allowed:
+#     - MIT
+#     - BSD-3-Clause
+#     - Apache-2.0
+#   denied:
+#     - GPL-3.0-only
+
+# Scope configuration
+# scope: runtime  # or "development" for dev dependencies only

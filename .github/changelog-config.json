@@ -1,0 +1,32 @@
+{
+  "categories": [
+    {
+      "title": "🚀 Features",
+      "labels": ["feature", "enhancement", "feat"]
+    },
+    {
+      "title": "🐛 Bug Fixes",
+      "labels": ["bug", "fix", "bugfix"]
+    },
+    {
+      "title": "📝 Documentation",
+      "labels": ["documentation", "docs"]
+    },
+    {
+      "title": "🔧 Maintenance",
+      "labels": ["maintenance", "chore", "refactor", "ci", "dependencies"]
+    },
+    {
+      "title": "⚡ Performance",
+      "labels": ["performance", "perf"]
+    },
+    {
+      "title": "🔒 Security",
+      "labels": ["security"]
+    }
+  ],
+  "template": "{{CHANGELOG}}\n\n---\n\n*Full changelog: {{REPOSITORY_URL}}/compare/{{PREVIOUS_TAG}}...{{CURRENT_TAG}}*",
+  "maxIssues": 50,
+  "excludeLabels": ["skip-changelog", "no-changelog"],
+  "includeUnlabeled": true
+}

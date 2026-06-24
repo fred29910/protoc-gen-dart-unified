@@ -1,0 +1,22 @@
+# Global owners
+* @your-org/core-team
+
+# Dart/Flutter specific
+*.dart @your-org/dart-team
+
+# Configuration files
+.github/ @your-org/core-team
+pubspec.yaml @your-org/dart-team
+analysis_options.yaml @your-org/dart-team
+
+# Documentation
+docs/ @your-org/docs-team
+README.md @your-org/docs-team
+
+# CI/CD
+.github/workflows/ @your-org/devops-team
+
+# Generated files (no review needed)
+*.pb.dart @your-org/dart-team
+*.g.dart @your-org/dart-team
+*.freezed.dart @your-org/dart-team

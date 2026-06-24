@@ -1,0 +1,45 @@
+codecov:
+  require_ci_to_pass: true
+  branch: main
+  notify:
+    wait_for_ci: true
+
+coverage:
+  status:
+    project:
+      default:
+        target: 80%
+        threshold: 5%
+        base: auto
+        flags:
+          - unittests
+    patch:
+      default:
+        target: 80%
+        threshold: 5%
+        base: auto
+        flags:
+          - unittests
+
+flags:
+  unittests:
+    paths:
+      - lib/
+      - test/
+    carryforward: false
+
+ignore:
+  - "test/fixtures/**"
+  - "test/golden/**"
+  - "test/goldens/**"
+  - "**/*.g.dart"
+  - "**/*.freezed.dart"
+  - "**/*.pb.dart"
+  - "bin/**"
+
+comment:
+  layout: "reach, diff, flags, files, footer"
+  behavior: default
+  require_changes: false
+  require_base: no
+  require_head: yes

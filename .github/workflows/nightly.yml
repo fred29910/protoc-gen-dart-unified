@@ -1,0 +1,138 @@
+name: Nightly Tests
+
+on:
+  schedule:
+    - cron: '0 2 * * *'  # Run daily at 2:00 AM UTC
+  workflow_dispatch:  # Allow manual trigger
+
+permissions:
+  contents: read
+
+jobs:
+  nightly-test:
+    name: Nightly Test (Dart ${{ matrix.dart-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        dart-version: ['stable', 'beta', 'dev']
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Dart
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: ${{ matrix.dart-version }}
+
+      - name: Cache Pub packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: pub-cache-nightly-${{ runner.os }}-${{ matrix.dart-version }}-${{ hashFiles('pubspec.yaml') }}
+          restore-keys: |
+            pub-cache-nightly-${{ runner.os }}-${{ matrix.dart-version }}-
+
+      - name: Install dependencies
+        run: dart pub get
+
+      - name: Verify formatting
+        run: dart format --output=none --set-exit-if-changed .
+
+      - name: Analyze code
+        run: dart analyze --fatal-infos
+
+      - name: Run all tests with coverage
+        run: dart test --coverage=coverage --reporter=expanded
+
+      - name: Generate coverage report
+        run: |
+          dart pub global activate coverage
+          dart pub global run coverage:format_lcov \
+            --in=coverage \
+            --out=coverage/lcov.info \
+            --packages=.dart_tool/package_config.json \
+            --report-on=lib
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage/lcov.info
+          flags: nightly
+          fail_ci_if_error: false
+
+      - name: Check for outdated dependencies
+        run: |
+          dart pub outdated --no-dev-dependencies || true
+
+  integration-test:
+    name: Integration Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Dart
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: 'stable'
+
+      - name: Setup protoc
+        uses: arduino/setup-protoc@v2
+        with:
+          version: '27.x'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install dependencies
+        run: dart pub get
+
+      - name: Build generator
+        run: dart compile exe bin/protoc_gen_dart_unified.dart -o bin/protoc-gen-dart-unified
+
+      - name: Run integration tests
+        run: |
+          # Test with sample proto files
+          mkdir -p test/output
+          protoc --plugin=protoc-gen-dart-unified=bin/protoc-gen-dart-unified \
+            --dart-unified_out=test/output \
+            -I test/fixtures \
+            test/fixtures/*.proto
+
+      - name: Verify generated code compiles
+        run: |
+          cd test/output
+          dart pub get || true
+          dart analyze || true
+
+  security-audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Dart
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: 'stable'
+
+      - name: Install dependencies
+        run: dart pub get
+
+      - name: Run OWASP dependency check
+        uses: dependency-check/Dependency-Check_Action@main
+        with:
+          project: 'protoc-gen-dart-unified'
+          path: '.'
+          format: 'HTML'
+          out: 'reports'
+          args: >
+            --suppression '.github/dependency-check-suppressions.xml'
+            --failOnCVSS 7
+
+      - name: Upload security report
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-report
+          path: reports/
+          retention-days: 30

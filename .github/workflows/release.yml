@@ -1,0 +1,131 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version type (patch, minor, major)'
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+      prerelease:
+        description: 'Pre-release identifier (e.g., beta, rc, alpha)'
+        required: false
+        type: string
+        default: ''
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Dart
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: 'stable'
+
+      - name: Setup Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Install dependencies
+        run: dart pub get
+
+      - name: Run tests
+        run: dart test
+
+      - name: Run analysis
+        run: dart analyze --fatal-infos
+
+      - name: Check formatting
+        run: dart format --output=none --set-exit-if-changed .
+
+      - name: Get current version
+        id: current_version
+        run: |
+          CURRENT_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //')
+          echo "version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Bump version
+        id: bump_version
+        run: |
+          CURRENT_VERSION=${{ steps.current_version.outputs.version }}
+          VERSION_TYPE=${{ github.event.inputs.version }}
+          PRERELEASE=${{ github.event.inputs.prerelease }}
+
+          if [ -n "$PRERELEASE" ]; then
+            # Pre-release version bump
+            NEW_VERSION=$(echo $CURRENT_VERSION | awk -F. -v OFS=. -v type="$VERSION_TYPE" -v pre="$PRERELEASE" '
+              {
+                if (type == "major") $1++; $2=0; $3=0
+                else if (type == "minor") $2++; $3=0
+                else $3++
+                print $1"."$2"."$3"-"pre".0"
+              }
+            ')
+          else
+            # Regular version bump
+            NEW_VERSION=$(echo $CURRENT_VERSION | awk -F. -v OFS=. -v type="$VERSION_TYPE" '
+              {
+                if (type == "major") $1++; $2=0; $3=0
+                else if (type == "minor") $2++; $3=0
+                else $3++
+                print $1"."$2"."$3
+              }
+            ')
+          fi
+
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Update pubspec.yaml
+        run: |
+          sed -i "s/^version: .*/version: ${{ steps.bump_version.outputs.new_version }}/" pubspec.yaml
+
+      - name: Generate CHANGELOG
+        id: changelog
+        uses: mikepenz/release-changelog-builder-action@v4
+        with:
+          configuration: ".github/changelog-config.json"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Commit version bump
+        run: |
+          git add pubspec.yaml
+          git commit -m "chore(release): ${{ steps.bump_version.outputs.new_version }}"
+
+      - name: Create git tag
+        run: |
+          git tag -a "v${{ steps.bump_version.outputs.new_version }}" -m "Release v${{ steps.bump_version.outputs.new_version }}"
+
+      - name: Push changes
+        run: |
+          git push origin main --tags
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.bump_version.outputs.new_version }}
+          name: Release v${{ steps.bump_version.outputs.new_version }}
+          body: ${{ steps.changelog.outputs.changelog }}
+          draft: false
+          prerelease: ${{ github.event.inputs.prerelease != '' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish to pub.dev
+        run: dart pub publish --force
