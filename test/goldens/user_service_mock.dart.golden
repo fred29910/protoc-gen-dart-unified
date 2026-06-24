@@ -1,7 +1,7 @@
 // ignore_for_file: type=lint
 import 'package:mockito/annotations.dart';
 import '../user.pb.dart';
-import 'user_service_service.dart';
+import 'user_service.dart';
 
 @GenerateNiceMocks([MockUserService])
 class MockUserService implements UserService {

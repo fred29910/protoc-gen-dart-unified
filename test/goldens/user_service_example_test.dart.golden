@@ -2,8 +2,8 @@
 import 'package:test/test.dart';
 import 'package:mockito/mockito.dart';
 import '../user.pb.dart';
-import 'user_service_service_mock.dart';
-import 'user_service_service.dart';
+import 'user_service_mock.dart';
+import 'user_service.dart';
 
 void main() {
   group('UserService', () {

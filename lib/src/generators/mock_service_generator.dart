@@ -29,7 +29,7 @@ class MockServiceGenerator {
     return [
       Directive.import('package:mockito/annotations.dart'),
       Directive.import('../${service.protoFileName.replaceAll('.proto', '.pb.dart')}'),
-      Directive.import('${_dartServiceName(service.name)}_service.dart'),
+      Directive.import('${_dartServiceName(service.name)}.dart'),
     ];
   }
 
