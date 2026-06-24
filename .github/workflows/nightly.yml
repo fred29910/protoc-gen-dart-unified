@@ -55,7 +55,7 @@ jobs:
             --report-on=lib
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v7
         with:
           files: ./coverage/lcov.info
           flags: nightly
