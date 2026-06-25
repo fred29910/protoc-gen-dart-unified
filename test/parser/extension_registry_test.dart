@@ -128,6 +128,76 @@ void main() {
       expect(method.isClientStreaming, isFalse);
     });
 
+    test('parses LABEL_OPTIONAL fields with isOptional flag', () {
+      final file = FileDescriptorProto()
+        ..name = 'user.proto'
+        ..package = 'user.v1'
+        ..syntax = 'proto3'
+        ..messageType.add(
+          DescriptorProto()
+            ..name = 'GetUserRequest'
+            ..field.addAll([
+              // Optional field (LABEL_OPTIONAL)
+              FieldDescriptorProto()
+                ..name = 'id'
+                ..number = 1
+                ..type = FieldDescriptorProto_Type.TYPE_STRING
+                ..label = FieldDescriptorProto_Label.LABEL_OPTIONAL,
+              // Regular proto3 field (LABEL_OPTIONAL is also default in proto2,
+              // but for proto3 without explicit 'optional' keyword, labels are
+              // LABEL_OPTIONAL too — the distinction is proto3_optional flag)
+              FieldDescriptorProto()
+                ..name = 'name'
+                ..number = 2
+                ..type = FieldDescriptorProto_Type.TYPE_STRING
+                ..label = FieldDescriptorProto_Label.LABEL_OPTIONAL,
+              // Repeated field
+              FieldDescriptorProto()
+                ..name = 'tags'
+                ..number = 3
+                ..type = FieldDescriptorProto_Type.TYPE_STRING
+                ..label = FieldDescriptorProto_Label.LABEL_REPEATED,
+            ]),
+        )
+        ..service.add(
+          ServiceDescriptorProto()
+            ..name = 'UserService'
+            ..method.add(
+              MethodDescriptorProto()
+                ..name = 'GetUser'
+                ..inputType = '.user.v1.GetUserRequest'
+                ..outputType = '.user.v1.User',
+            ),
+        );
+
+      final parser = DescriptorParser();
+      final services = parser.parse([file]);
+
+      expect(services, hasLength(1));
+      expect(services.first.messages, hasLength(1));
+
+      final message = services.first.messages.first;
+      expect(message.fields, hasLength(3));
+
+      // Optional field
+      final idField = message.fields[0];
+      expect(idField.name, equals('id'));
+      expect(idField.isOptional, isTrue);
+      expect(idField.isRepeated, isFalse);
+
+      // Regular proto3 field (without explicit optional)
+      final nameField = message.fields[1];
+      expect(nameField.name, equals('name'));
+      expect(nameField.isOptional, isTrue);
+      expect(nameField.isRepeated, isFalse);
+
+      // Repeated field
+      final tagsField = message.fields[2];
+      expect(tagsField.name, equals('tags'));
+      expect(tagsField.isOptional, isFalse);
+      expect(tagsField.isRepeated, isTrue);
+    });
+
     test('detects client streaming from method descriptor', () {
       final file = FileDescriptorProto()
         ..name = 'user.proto'

@@ -1,3 +1,4 @@
+import 'package:fixnum/fixnum.dart';
 import 'package:test/test.dart';
 import 'package:protoc_plugin/src/gen/google/protobuf/descriptor.pb.dart';
 import 'package:protoc_plugin/src/gen/google/protobuf/compiler/plugin.pb.dart';
@@ -139,6 +140,17 @@ void main() {
       expect(response.error, isEmpty);
       expect(response.file, hasLength(1));
       expect(response.file.first.name, equals('user_service.dart'));
+    });
+
+    test('declares FEATURE_PROTO3_OPTIONAL in supportedFeatures', () {
+      final generator = CodeGenerator();
+      final response = generator.generate(
+        CodeGeneratorRequest(fileToGenerate: [], protoFile: []),
+      );
+
+      expect(response.hasSupportedFeatures(), isTrue);
+      // FEATURE_PROTO3_OPTIONAL = 1
+      expect(response.supportedFeatures, equals(Int64(1)));
     });
   });
 }

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:fixnum/fixnum.dart';
 import 'package:protoc_plugin/src/gen/google/protobuf/compiler/plugin.pb.dart';
 import 'parser/descriptor_parser.dart';
 import 'generators/service_generator.dart';
@@ -45,7 +46,10 @@ class CodeGenerator {
         }
       }
 
-      return CodeGeneratorResponse(file: files);
+      return CodeGeneratorResponse(
+        file: files,
+        supportedFeatures: Int64(1), // FEATURE_PROTO3_OPTIONAL
+      );
     } catch (e, st) {
       return CodeGeneratorResponse(error: 'Generation failed: $e\n$st');
     }

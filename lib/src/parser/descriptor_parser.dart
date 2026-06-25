@@ -49,6 +49,7 @@ class DescriptorParser {
           name: f.name,
           type: f.type.name,
           isRepeated: f.label == FieldDescriptorProto_Label.LABEL_REPEATED,
+          isOptional: f.label == FieldDescriptorProto_Label.LABEL_OPTIONAL,
           isMap:
               f.type == FieldDescriptorProto_Type.TYPE_MESSAGE &&
               f.typeName.isNotEmpty,

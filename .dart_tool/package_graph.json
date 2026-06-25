@@ -11,6 +11,7 @@
         "code_builder",
         "dart_style",
         "dio",
+        "fixnum",
         "grpc",
         "protobuf",
         "protoc_plugin",
@@ -122,6 +123,11 @@
         "source_span",
         "yaml"
       ]
+    },
+    {
+      "name": "fixnum",
+      "version": "1.1.1",
+      "dependencies": []
     },
     {
       "name": "protobuf",
@@ -433,11 +439,6 @@
         "http_parser",
         "meta"
       ]
-    },
-    {
-      "name": "fixnum",
-      "version": "1.1.1",
-      "dependencies": []
     },
     {
       "name": "crypto",
