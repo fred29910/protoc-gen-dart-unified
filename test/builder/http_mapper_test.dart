@@ -1,8 +1,5 @@
 import 'package:test/test.dart';
 import 'package:protoc_gen_dart_unified/src/builder/http_mapper.dart';
-import 'package:protoc_gen_dart_unified/src/builder/path_mapping.dart';
-import 'package:protoc_gen_dart_unified/src/builder/query_field.dart';
-import 'package:protoc_gen_dart_unified/src/builder/body_mapping.dart';
 import 'package:protoc_gen_dart_unified/src/model/field_model.dart';
 
 void main() {

@@ -1,5 +1,4 @@
 import 'package:test/test.dart';
-import 'package:protobuf/protobuf.dart';
 import 'package:protoc_plugin/src/gen/google/protobuf/descriptor.pb.dart';
 import 'package:protoc_plugin/src/gen/google/protobuf/compiler/plugin.pb.dart';
 import 'package:protoc_gen_dart_unified/src/generator.dart';

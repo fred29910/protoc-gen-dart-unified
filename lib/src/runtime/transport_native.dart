@@ -234,6 +234,7 @@ class HttpTransport extends Transport {
 /// This is a scaffold — full implementation requires the generated
 /// *ServiceClient classes from protoc-gen-dart.
 class GrpcTransport extends Transport {
+  // ignore: unused_field — reserved for generated *ServiceClient delegation
   final dynamic _client;
   final List<RpcInterceptor> _interceptors;
 

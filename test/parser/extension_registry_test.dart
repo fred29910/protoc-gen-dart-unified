@@ -1,12 +1,10 @@
 import 'package:test/test.dart';
-import 'package:protobuf/protobuf.dart';
 import 'package:protoc_plugin/src/gen/google/protobuf/descriptor.pb.dart';
 import 'package:protoc_gen_dart_unified/src/parser/extension_registry.dart';
 import 'package:protoc_gen_dart_unified/src/parser/descriptor_parser.dart';
 import 'package:protoc_gen_dart_unified/src/parser/google/api/annotations.pb.dart';
 import 'package:protoc_gen_dart_unified/src/parser/google/api/http.pb.dart'
     as http_rule;
-import 'package:protoc_gen_dart_unified/src/model/service_model.dart';
 
 void main() {
   group('ExtensionRegistry', () {

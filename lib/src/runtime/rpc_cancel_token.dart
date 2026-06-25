@@ -1,5 +1,3 @@
-import 'dart:async';
-
 /// A cancellation token that can be used to signal cancellation to one or more
 /// operations.
 ///
