@@ -35,7 +35,7 @@ void main() {
 }
 
 /// A minimal test implementation of Transport.
-class _TestTransport implements Transport {
+class _TestTransport extends Transport {
   @override
   Future<T> unaryCall<T>(
     String serviceName,

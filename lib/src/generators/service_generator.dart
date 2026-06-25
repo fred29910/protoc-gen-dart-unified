@@ -33,7 +33,7 @@ class ServiceGenerator {
         _buildApiSdk(),
       ]));
 
-    final emitter = DartEmitter.scoped();
+    final emitter = DartEmitter.scoped(useNullSafetySyntax: true);
     final source = library.accept(emitter).toString();
     final formatter = DartFormatter(
         languageVersion: Version(3, 10, 0));
@@ -45,7 +45,6 @@ class ServiceGenerator {
       Directive.import('package:protoc_gen_dart_unified/src/runtime/transport.dart'),
       Directive.import('package:protoc_gen_dart_unified/src/runtime/client_options.dart'),
       Directive.import('package:protoc_gen_dart_unified/src/runtime/transport_factory.dart'),
-      Directive.import('package:protoc_gen_dart_unified/src/runtime/rpc_interceptor.dart'),
       Directive.import('../${service.protoFileName.replaceAll('.proto', '.pb.dart')}'),
     ];
     if (!_useHttp) {
@@ -351,6 +350,11 @@ class ServiceGenerator {
   }
 
   /// Builds the ApiSdk entry class.
+  ///
+  /// The ApiSdk reads interceptors, retryPolicy, tracingEnabled, and
+  /// autoRetryEnabled from [ClientOptions] and builds an effective
+  /// interceptor chain via [ClientOptions.buildInterceptorChain].
+  /// Additional user-provided interceptors are appended after the chain.
   Class _buildApiSdk() {
     final serviceFieldName = _dartMethodName(service.name);
     final isGrpc = !_useHttp;
@@ -362,7 +366,7 @@ class ServiceGenerator {
         ..named = true
         ..required = true),
       Parameter((p) => p
-        ..name = 'interceptors'
+        ..name = 'extraInterceptors'
         ..type = refer('List<RpcInterceptor>')
         ..defaultTo = const Code('const []')
         ..named = true),
@@ -377,18 +381,26 @@ class ServiceGenerator {
         ..named = true));
     }
 
-    final ctorInit = isGrpc
-        ? '$serviceFieldName = Unified${service.name}(createTransport(options.endpoint, grpcClient: grpcClient)!, interceptors, grpcClient)'
-        : '$serviceFieldName = Unified${service.name}(createTransport(options.endpoint)!, interceptors)';
+    // Build the constructor body: compute chain, then create transport + Unified
+    final body = StringBuffer();
+    body.writeln('final _chain = options.buildInterceptorChain() + extraInterceptors;');
+    if (isGrpc) {
+      body.write(
+          '$serviceFieldName = Unified${service.name}(createTransport(options.endpoint, grpcClient: grpcClient)!, _chain, grpcClient);');
+    } else {
+      body.write(
+          '$serviceFieldName = Unified${service.name}(createTransport(options.endpoint)!, _chain);');
+    }
 
     return Class((b) => b
       ..name = 'ApiSdk'
       ..fields.add(Field((f) => f
         ..name = serviceFieldName
-        ..type = refer(service.name)))
+        ..type = refer(service.name)
+        ..late = true))
       ..constructors.add(Constructor((c) => c
         ..optionalParameters.addAll(ctorParams)
-        ..initializers.add(Code(ctorInit)))));
+        ..body = Code(body.toString()))));
   }
 
   /// Converts proto method name to Dart method name (PascalCase → camelCase).

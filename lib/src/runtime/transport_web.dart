@@ -5,15 +5,24 @@ import 'api_exception.dart';
 /// Creates a transport for web platforms.
 ///
 /// Web only supports HTTP transport (no gRPC).
-Transport? createTransport(String endpoint, {dynamic grpcClient}) {
-  return HttpTransport(endpoint);
+Transport? createTransport(
+  String endpoint, {
+  dynamic grpcClient,
+  List<RpcInterceptor> interceptors = const [],
+}) {
+  return HttpTransport(endpoint, interceptors: interceptors);
 }
 
 /// HTTP transport implementation for web using dio.
-class HttpTransport implements Transport {
+class HttpTransport extends Transport {
   final Dio _dio;
+  final List<RpcInterceptor> _interceptors;
 
-  HttpTransport(String endpoint) : _dio = Dio(BaseOptions(baseUrl: endpoint));
+  HttpTransport(
+    String endpoint, {
+    List<RpcInterceptor> interceptors = const [],
+  })  : _dio = Dio(BaseOptions(baseUrl: endpoint)),
+        _interceptors = interceptors;
 
   @override
   Future<T> unaryCall<T>(
@@ -21,27 +30,67 @@ class HttpTransport implements Transport {
     String methodName,
     Object request, {
     RpcCallOptions? options,
-  }) async {
+  }) {
+    return executeWithInterceptors<T>(
+      serviceName,
+      methodName,
+      request,
+      options,
+      _interceptors,
+      (req, opts) => _rawUnaryCall<T>(serviceName, methodName, req, opts),
+    );
+  }
+
+  /// Core HTTP call without interceptor chain (used as finalCall).
+  Future<T> _rawUnaryCall<T>(
+    String serviceName,
+    String methodName,
+    Object request,
+    RpcCallOptions? options,
+  ) async {
     try {
       final method = options?.httpMethod ?? 'POST';
       final path = options?.httpPath ?? '/$serviceName/$methodName';
       final data = options?.httpBody;
       final queryParameters = options?.httpQueryParams;
 
-      final response = await _dio.request<dynamic>(
-        path,
-        data: data,
-        queryParameters: queryParameters,
-        options: Options(
-          method: method.toUpperCase(),
-          headers: options?.headers,
-          sendTimeout: options?.timeout,
-          receiveTimeout: options?.timeout,
-        ),
-      );
-      return response.data as T;
-    } on DioException catch (e) {
-      throw _mapDioException(e);
+      // Set up Dio CancelToken if RpcCancelToken is provided
+      CancelToken? dioCancelToken;
+      if (options?.cancelToken != null) {
+        dioCancelToken = CancelToken();
+        options!.cancelToken!.onCancel(() {
+          if (!dioCancelToken!.isCancelled) {
+            dioCancelToken.cancel('Cancelled by RpcCancelToken');
+          }
+        });
+      }
+
+      try {
+        final response = await _dio.request<dynamic>(
+          path,
+          data: data,
+          queryParameters: queryParameters,
+          options: Options(
+            method: method.toUpperCase(),
+            headers: options?.headers,
+            sendTimeout: options?.timeout,
+            receiveTimeout: options?.timeout,
+          ),
+          cancelToken: dioCancelToken,
+        );
+        return response.data as T;
+      } on DioException catch (e) {
+        if (e.type == DioExceptionType.cancel &&
+            options?.cancelToken?.isCancelled == true) {
+          throw CancelledException(
+            options?.cancelToken?.cancelledReason?.toString() ??
+                'Cancelled by RpcCancelToken',
+          );
+        }
+        throw _mapDioException(e);
+      }
+    } finally {
+      // Dio CancelToken is local; no cleanup needed
     }
   }
 

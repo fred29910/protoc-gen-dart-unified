@@ -9,17 +9,26 @@ import 'sse_parser.dart';
 ///
 /// Returns an HttpTransport for HTTP-only mode, or null if gRPC is needed
 /// but no gRPC client is available.
-Transport? createTransport(String endpoint, {dynamic grpcClient}) {
+Transport? createTransport(
+  String endpoint, {
+  dynamic grpcClient,
+  List<RpcInterceptor> interceptors = const [],
+}) {
   // Native platform: always return HttpTransport for HTTP.
   // For gRPC, the generated code uses grpcClient directly via _grpcClient field.
-  return HttpTransport(endpoint);
+  return HttpTransport(endpoint, interceptors: interceptors);
 }
 
 /// HTTP transport implementation using dio.
-class HttpTransport implements Transport {
+class HttpTransport extends Transport {
   final Dio _dio;
+  final List<RpcInterceptor> _interceptors;
 
-  HttpTransport(String endpoint) : _dio = Dio(BaseOptions(baseUrl: endpoint));
+  HttpTransport(
+    String endpoint, {
+    List<RpcInterceptor> interceptors = const [],
+  })  : _dio = Dio(BaseOptions(baseUrl: endpoint)),
+        _interceptors = interceptors;
 
   @override
   Future<T> unaryCall<T>(
@@ -27,27 +36,67 @@ class HttpTransport implements Transport {
     String methodName,
     Object request, {
     RpcCallOptions? options,
-  }) async {
+  }) {
+    return executeWithInterceptors<T>(
+      serviceName,
+      methodName,
+      request,
+      options,
+      _interceptors,
+      (req, opts) => _rawUnaryCall<T>(serviceName, methodName, req, opts),
+    );
+  }
+
+  /// Core HTTP call without interceptor chain (used as finalCall).
+  Future<T> _rawUnaryCall<T>(
+    String serviceName,
+    String methodName,
+    Object request,
+    RpcCallOptions? options,
+  ) async {
     try {
       final method = options?.httpMethod ?? 'POST';
       final path = options?.httpPath ?? '/$serviceName/$methodName';
       final data = options?.httpBody;
       final queryParameters = options?.httpQueryParams;
 
-      final response = await _dio.request<dynamic>(
-        path,
-        data: data,
-        queryParameters: queryParameters,
-        options: Options(
-          method: method.toUpperCase(),
-          headers: options?.headers,
-          sendTimeout: options?.timeout,
-          receiveTimeout: options?.timeout,
-        ),
-      );
-      return response.data as T;
-    } on DioException catch (e) {
-      throw _mapDioException(e);
+      // Set up Dio CancelToken if RpcCancelToken is provided
+      CancelToken? dioCancelToken;
+      if (options?.cancelToken != null) {
+        dioCancelToken = CancelToken();
+        options!.cancelToken!.onCancel(() {
+          if (!dioCancelToken!.isCancelled) {
+            dioCancelToken.cancel('Cancelled by RpcCancelToken');
+          }
+        });
+      }
+
+      try {
+        final response = await _dio.request<dynamic>(
+          path,
+          data: data,
+          queryParameters: queryParameters,
+          options: Options(
+            method: method.toUpperCase(),
+            headers: options?.headers,
+            sendTimeout: options?.timeout,
+            receiveTimeout: options?.timeout,
+          ),
+          cancelToken: dioCancelToken,
+        );
+        return response.data as T;
+      } on DioException catch (e) {
+        if (e.type == DioExceptionType.cancel &&
+            options?.cancelToken?.isCancelled == true) {
+          throw CancelledException(
+            options?.cancelToken?.cancelledReason?.toString() ??
+                'Cancelled by RpcCancelToken',
+          );
+        }
+        throw _mapDioException(e);
+      }
+    } finally {
+      // Dio CancelToken is local; no cleanup needed
     }
   }
 
@@ -79,9 +128,12 @@ class HttpTransport implements Transport {
     if (options?.httpQueryParams != null) {
       queryParams.addAll(options!.httpQueryParams!);
     }
-    final fullUri = uri.replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
+    final fullUri =
+        uri.replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
 
-    io.HttpClient().openUrl(options?.httpMethod ?? 'GET', fullUri).then((req) {
+    io.HttpClient()
+        .openUrl(options?.httpMethod ?? 'GET', fullUri)
+        .then((req) {
       // Add headers
       options?.headers?.forEach((key, value) {
         req.headers.set(key, value);
@@ -135,19 +187,19 @@ class HttpTransport implements Transport {
   int _httpStatusToGrpcCode(int status) {
     // Reverse mapping: HTTP status → gRPC canonical code
     return switch (status) {
-      400 => 3,  // INVALID_ARGUMENT
+      400 => 3, // INVALID_ARGUMENT
       401 => 16, // UNAUTHENTICATED
-      403 => 7,  // PERMISSION_DENIED
-      404 => 5,  // NOT_FOUND
-      409 => 6,  // ALREADY_EXISTS
-      429 => 8,  // RESOURCE_EXHAUSTED
-      422 => 3,  // INVALID_ARGUMENT (unprocessable entity)
+      403 => 7, // PERMISSION_DENIED
+      404 => 5, // NOT_FOUND
+      409 => 6, // ALREADY_EXISTS
+      429 => 8, // RESOURCE_EXHAUSTED
+      422 => 3, // INVALID_ARGUMENT (unprocessable entity)
       500 => 13, // INTERNAL
       501 => 12, // UNIMPLEMENTED
       502 => 14, // UNAVAILABLE
       503 => 14, // UNAVAILABLE
-      504 => 4,  // DEADLINE_EXCEEDED
-      _ => 2,    // UNKNOWN
+      504 => 4, // DEADLINE_EXCEEDED
+      _ => 2, // UNKNOWN
     };
   }
 
@@ -178,10 +230,14 @@ class HttpTransport implements Transport {
 ///
 /// This is a scaffold — full implementation requires the generated
 /// *ServiceClient classes from protoc-gen-dart.
-class GrpcTransport implements Transport {
+class GrpcTransport extends Transport {
   final dynamic _client;
+  final List<RpcInterceptor> _interceptors;
 
-  GrpcTransport(this._client);
+  GrpcTransport(
+    this._client, {
+    List<RpcInterceptor> interceptors = const [],
+  }) : _interceptors = interceptors;
 
   @override
   Future<T> unaryCall<T>(
@@ -190,8 +246,29 @@ class GrpcTransport implements Transport {
     Object request, {
     RpcCallOptions? options,
   }) {
+    return executeWithInterceptors<T>(
+      serviceName,
+      methodName,
+      request,
+      options,
+      _interceptors,
+      (req, opts) => _rawGrpcUnaryCall<T>(serviceName, methodName, req, opts),
+    );
+  }
+
+  /// Core gRPC call without interceptor chain (used as finalCall).
+  Future<T> _rawGrpcUnaryCall<T>(
+    String serviceName,
+    String methodName,
+    Object request,
+    RpcCallOptions? options,
+  ) async {
     // gRPC unary call delegates to the generated *ServiceClient.
     // The generated code casts _client to the correct type and calls the method.
+    //
+    // When RpcCancelToken is provided, the generated code should listen to
+    // cancelToken.onCancel and call ResponseFuture.cancel().
+    // This is handled at the generated code level (see B1: ServiceGenerator).
     throw UnimplementedError(
         'gRPC unary call requires generated *ServiceClient for '
         '$serviceName.$methodName. '

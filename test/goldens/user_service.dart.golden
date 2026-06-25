@@ -2,7 +2,6 @@
 import 'package:protoc_gen_dart_unified/src/runtime/transport.dart';
 import 'package:protoc_gen_dart_unified/src/runtime/client_options.dart';
 import 'package:protoc_gen_dart_unified/src/runtime/transport_factory.dart';
-import 'package:protoc_gen_dart_unified/src/runtime/rpc_interceptor.dart';
 import '../user.pb.dart';
 
 abstract class UserService {
@@ -92,11 +91,14 @@ class UnifiedUserService implements UserService {
 class ApiSdk {
   ApiSdk({
     required ClientOptions options,
-    List<RpcInterceptor> interceptors = const [],
-  }) : userService = UnifiedUserService(
-         createTransport(options.endpoint)!,
-         interceptors,
-       );
+    List<RpcInterceptor> extraInterceptors = const [],
+  }) {
+    final _chain = options.buildInterceptorChain() + extraInterceptors;
+    userService = UnifiedUserService(
+      createTransport(options.endpoint)!,
+      _chain,
+    );
+  }
 
-  UserService userService;
+  late UserService userService;
 }

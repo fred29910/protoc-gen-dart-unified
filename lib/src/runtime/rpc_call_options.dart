@@ -1,3 +1,5 @@
+import 'rpc_cancel_token.dart';
+
 /// Options for a single RPC call.
 ///
 /// Carries headers/metadata, timeout/deadline, HTTP-specific
@@ -21,6 +23,10 @@ class RpcCallOptions {
   /// HTTP body override.
   final dynamic httpBody;
 
+  /// Cancellation token for cooperative cancellation.
+  /// When cancelled, the transport aborts the request and throws [CancelledException].
+  final RpcCancelToken? cancelToken;
+
   /// Creates a copy with the given fields replaced.
   RpcCallOptions copyWith({
     Map<String, String>? headers,
@@ -29,6 +35,7 @@ class RpcCallOptions {
     String? httpMethod,
     Map<String, dynamic>? httpQueryParams,
     dynamic httpBody,
+    RpcCancelToken? cancelToken,
   }) {
     return RpcCallOptions(
       headers: headers ?? this.headers,
@@ -37,6 +44,7 @@ class RpcCallOptions {
       httpMethod: httpMethod ?? this.httpMethod,
       httpQueryParams: httpQueryParams ?? this.httpQueryParams,
       httpBody: httpBody ?? this.httpBody,
+      cancelToken: cancelToken ?? this.cancelToken,
     );
   }
 
@@ -47,5 +55,6 @@ class RpcCallOptions {
     this.httpMethod,
     this.httpQueryParams,
     this.httpBody,
+    this.cancelToken,
   });
 }
