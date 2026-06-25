@@ -1,6 +1,31 @@
 # AGENTS.md
 
-This file provides guidance to WARP (warp.dev) when working with code in this repository.
+**Generated:** 2026-06-25
+**Commit:** `db57123`
+**Branch:** `main`
+
+This file provides guidance to OpenCode when working with code in this repository.
+
+## OVERVIEW
+
+`protoc-gen-dart-unified` is a Dart/Flutter RPC SDK code generator plugin for `protoc` — generates unified client SDKs supporting HTTP (REST/JSON via `google.api.http`) and gRPC transports from a single `.proto`. Dart + `code_builder` + `protobuf`.
+
+## WHERE TO LOOK
+
+| Task | Location | Notes |
+|------|----------|-------|
+| Plugin entry | `bin/protoc_gen_dart_unified.dart` | Reads stdin, writes stdout |
+| Code generation | `lib/src/generators/service_generator.dart` | 500 LOC, generates interface + impl + SDK |
+| Mock generation | `lib/src/generators/mock_service_generator.dart` | Mock client for testing |
+| Example test scaffold | `lib/src/generators/example_test_generator.dart` | Example test generator |
+| Proto parsing | `lib/src/parser/descriptor_parser.dart` | FileDescriptorProto → ServiceModel |
+| HTTP extension registry | `lib/src/parser/extension_registry.dart` | google.api.http custom option |
+| Runtime transport | `lib/src/runtime/` | 19 files — transport, interceptors, SSE |
+| HTTP mapping | `lib/src/builder/` | Path resolution, body mapping, query flattening |
+| Data models | `lib/src/model/` | ServiceModel, MethodModel, HttpRuleModel, etc. |
+| Integration test | `test/generator_integration_test.dart` | Programmatic CodeGeneratorRequest |
+| Golden tests | `test/golden/golden_test.dart` | Expected output snapshots |
+| Golden fixtures | `test/fixtures/` | Proto definitions for tests |
 
 ## Project Overview
 
@@ -130,3 +155,43 @@ Defined in `analysis_options.yaml`:
 - `avoid_print`
 - `unnecessary_late`
 - Strict casts, inference, and raw types enabled
+
+## Interceptor Architecture
+
+**Interceptor chain execution order:**
+1. Tracing (if `tracingEnabled: true`)
+2. User-provided interceptors
+3. Retry (if `autoRetryEnabled: true` and `retryPolicy` is set)
+
+**Key classes:**
+- `RpcInterceptor` — Abstract interface for interceptors
+- `InterceptorContext` — Context passed through the chain (serviceName, methodName, request, options)
+- `Transport.executeWithInterceptors()` — Base method for interceptor chain execution
+- `ClientOptions.buildInterceptorChain()` — Constructs the effective interceptor chain
+
+**Important:** The generated `Unified<Service>` class manages its own interceptor chain (not `Transport`). The `Transport.executeWithInterceptors()` is called by `HttpTransport`/`GrpcTransport` with empty interceptors by default.
+
+## Code Generation Details
+
+**Generated file structure per service:**
+- `{service_name}.dart` — Abstract interface + `Unified{ServiceName}` implementation + `ApiSdk` entry class
+- `{service_name}_mock.dart` — Mock class for testing (when `mock=true`)
+- `{service_name}_example_test.dart` — Example test scaffold (when `mock=true`)
+
+**Naming conventions:**
+- Proto `PascalCase` → Dart `snake_case` for file names
+- Proto `PascalCase` → Dart `camelCase` for method names
+
+## Golden Test Updates
+
+To update golden files:
+```bash
+UPDATE_GOLDENS=1 dart test test/golden/golden_test.dart
+```
+
+## Important Notes
+
+- Generated code includes `// ignore_for_file: type=lint` to suppress lint rules in output
+- `DartEmitter.scoped(useNullSafetySyntax: true)` is required for proper null safety syntax in generated code
+- `GrpcTransport._client` field is reserved for future use (currently throws `UnimplementedError`)
+- `ApiSdk` constructor body computes interceptor chain via `ClientOptions.buildInterceptorChain()` and passes it to the service implementation
