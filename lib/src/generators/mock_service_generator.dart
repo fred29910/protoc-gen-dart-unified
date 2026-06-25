@@ -29,6 +29,7 @@ class MockServiceGenerator {
 
   List<Directive> _buildDirectives() {
     return [
+      Directive.import('unified_runtime.dart'),
       Directive.import('package:mockito/annotations.dart'),
       Directive.import(
         '../${service.protoFileName.replaceAll('.proto', '.pb.dart')}',

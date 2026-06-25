@@ -30,6 +30,7 @@ class ExampleTestGenerator {
   List<Directive> _buildDirectives() {
     final serviceName = _dartServiceName(service.name);
     return [
+      Directive.import('unified_runtime.dart'),
       Directive.import('package:test/test.dart'),
       Directive.import('package:mockito/mockito.dart'),
       Directive.import(
