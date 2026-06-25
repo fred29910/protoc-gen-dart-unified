@@ -7,7 +7,9 @@ class BodyMapping {
 
   @override
   bool operator ==(Object other) =>
-      other is BodyMapping && kind == other.kind && fieldName == other.fieldName;
+      other is BodyMapping &&
+      kind == other.kind &&
+      fieldName == other.fieldName;
 
   @override
   int get hashCode => Object.hash(kind, fieldName);

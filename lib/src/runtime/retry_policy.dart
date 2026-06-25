@@ -59,7 +59,8 @@ class RetryPolicy {
   /// Computes the delay before the given retry attempt (0-indexed).
   Duration delayForAttempt(int attempt) {
     if (attempt <= 0) return Duration.zero;
-    var delay = initialDelay.inMicroseconds *
+    var delay =
+        initialDelay.inMicroseconds *
         pow(backoffMultiplier, attempt - 1).toDouble();
     if (delay > maxDelay.inMicroseconds) {
       delay = maxDelay.inMicroseconds.toDouble();
@@ -72,4 +73,3 @@ class RetryPolicy {
     return Duration(microseconds: delay.round());
   }
 }
-

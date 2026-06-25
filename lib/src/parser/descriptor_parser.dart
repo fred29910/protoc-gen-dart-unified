@@ -28,12 +28,14 @@ class DescriptorParser {
             isClientStreaming: m.clientStreaming,
           );
         }).toList();
-        services.add(ServiceModel(
-          name: service.name,
-          protoFileName: file.name,
-          methods: methods,
-          messages: messages,
-        ));
+        services.add(
+          ServiceModel(
+            name: service.name,
+            protoFileName: file.name,
+            methods: methods,
+            messages: messages,
+          ),
+        );
       }
     }
     return services;
@@ -47,33 +49,33 @@ class DescriptorParser {
           name: f.name,
           type: f.type.name,
           isRepeated: f.label == FieldDescriptorProto_Label.LABEL_REPEATED,
-          isMap: f.type == FieldDescriptorProto_Type.TYPE_MESSAGE &&
+          isMap:
+              f.type == FieldDescriptorProto_Type.TYPE_MESSAGE &&
               f.typeName.isNotEmpty,
           messageType: f.typeName,
         );
       }).toList();
-      return MessageModel(
-        name: d.name,
-        fullName: d.name,
-        fields: fields,
-      );
+      return MessageModel(name: d.name, fullName: d.name, fields: fields);
     }).toList();
   }
 
   /// Extracts HttpRule from method options using ExtensionRegistry re-parse.
   HttpRuleModel? _extractHttpRule(
-      MethodDescriptorProto method, ExtensionRegistry registry) {
+    MethodDescriptorProto method,
+    ExtensionRegistry registry,
+  ) {
     if (!method.hasOptions()) return null;
 
     try {
       final options = MethodOptions();
-      options.mergeFromBuffer(
-          method.options.writeToBuffer(), registry);
+      options.mergeFromBuffer(method.options.writeToBuffer(), registry);
       final httpRule = options.getExtension(Annotations.http);
       if (httpRule == null) return null;
       return _mapHttpRule(httpRule as http_rule.HttpRule);
     } catch (e) {
-      throw StateError('Failed to parse HttpRule for method ${method.name}: $e');
+      throw StateError(
+        'Failed to parse HttpRule for method ${method.name}: $e',
+      );
     }
   }
 
@@ -110,8 +112,9 @@ class DescriptorParser {
     }
 
     final body = httpRule.hasBody() ? httpRule.body : '';
-    final responseBody =
-        httpRule.hasResponseBody() ? httpRule.responseBody : '';
+    final responseBody = httpRule.hasResponseBody()
+        ? httpRule.responseBody
+        : '';
 
     final additionalBindings = httpRule.additionalBindings
         .map<HttpRuleModel>((b) => _mapHttpRule(b))

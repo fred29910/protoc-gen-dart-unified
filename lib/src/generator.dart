@@ -18,32 +18,36 @@ class CodeGenerator {
         // Generate service file
         final serviceGenerator = ServiceGenerator(service);
         final serviceContent = serviceGenerator.generate();
-        files.add(CodeGeneratorResponse_File(
-          name: '${_dartServiceName(service.name)}.dart',
-          content: serviceContent,
-        ));
+        files.add(
+          CodeGeneratorResponse_File(
+            name: '${_dartServiceName(service.name)}.dart',
+            content: serviceContent,
+          ),
+        );
 
         // Generate mock and example test files (default: enabled)
         if (mockEnabled) {
           final mockGenerator = MockServiceGenerator(service);
-          files.add(CodeGeneratorResponse_File(
-            name: '${_dartServiceName(service.name)}_mock.dart',
-            content: mockGenerator.generate(),
-          ));
+          files.add(
+            CodeGeneratorResponse_File(
+              name: '${_dartServiceName(service.name)}_mock.dart',
+              content: mockGenerator.generate(),
+            ),
+          );
 
           final testGenerator = ExampleTestGenerator(service);
-          files.add(CodeGeneratorResponse_File(
-            name: '${_dartServiceName(service.name)}_example_test.dart',
-            content: testGenerator.generate(),
-          ));
+          files.add(
+            CodeGeneratorResponse_File(
+              name: '${_dartServiceName(service.name)}_example_test.dart',
+              content: testGenerator.generate(),
+            ),
+          );
         }
       }
 
       return CodeGeneratorResponse(file: files);
     } catch (e, st) {
-      return CodeGeneratorResponse(
-        error: 'Generation failed: $e\n$st',
-      );
+      return CodeGeneratorResponse(error: 'Generation failed: $e\n$st');
     }
   }
 
@@ -64,10 +68,12 @@ class CodeGenerator {
 
   /// Converts proto service name to Dart file name (PascalCase → snake_case).
   String _dartServiceName(String protoName) {
-    return protoName.replaceAllMapped(
-      RegExp(r'[A-Z]'),
-      (match) => '_${match.group(0)!.toLowerCase()}',
-    ).replaceFirst('_', '');
+    return protoName
+        .replaceAllMapped(
+          RegExp(r'[A-Z]'),
+          (match) => '_${match.group(0)!.toLowerCase()}',
+        )
+        .replaceFirst('_', '');
   }
 }
 

@@ -24,11 +24,9 @@ class HttpTransport extends Transport {
   final Dio _dio;
   final List<RpcInterceptor> _interceptors;
 
-  HttpTransport(
-    String endpoint, {
-    List<RpcInterceptor> interceptors = const [],
-  })  : _dio = Dio(BaseOptions(baseUrl: endpoint)),
-        _interceptors = interceptors;
+  HttpTransport(String endpoint, {List<RpcInterceptor> interceptors = const []})
+    : _dio = Dio(BaseOptions(baseUrl: endpoint)),
+      _interceptors = interceptors;
 
   @override
   Future<T> unaryCall<T>(
@@ -128,50 +126,55 @@ class HttpTransport extends Transport {
     if (options?.httpQueryParams != null) {
       queryParams.addAll(options!.httpQueryParams!);
     }
-    final fullUri =
-        uri.replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
+    final fullUri = uri.replace(
+      queryParameters: queryParams.isNotEmpty ? queryParams : null,
+    );
 
     io.HttpClient()
         .openUrl(options?.httpMethod ?? 'GET', fullUri)
         .then((req) {
-      // Add headers
-      options?.headers?.forEach((key, value) {
-        req.headers.set(key, value);
-      });
-      req.headers.set('Accept', 'text/event-stream');
-      req.headers.set('Cache-Control', 'no-cache');
+          // Add headers
+          options?.headers?.forEach((key, value) {
+            req.headers.set(key, value);
+          });
+          req.headers.set('Accept', 'text/event-stream');
+          req.headers.set('Cache-Control', 'no-cache');
 
-      // Add body for non-GET methods
-      if (options?.httpBody != null &&
-          (options?.httpMethod ?? 'GET') != 'GET') {
-        final bodyData = options!.httpBody;
-        if (bodyData is String) {
-          req.write(bodyData);
-        } else {
-          req.write(bodyData.toString());
-        }
-      }
+          // Add body for non-GET methods
+          if (options?.httpBody != null &&
+              (options?.httpMethod ?? 'GET') != 'GET') {
+            final bodyData = options!.httpBody;
+            if (bodyData is String) {
+              req.write(bodyData);
+            } else {
+              req.write(bodyData.toString());
+            }
+          }
 
-      return req.close().then((response) {
-        if (response.statusCode != 200) {
-          controller.addError(InternalServerException(
-              'SSE connection failed with status ${response.statusCode}'));
-          controller.close();
-          return;
-        }
-        SseParser.parse(response).listen(
-          (data) {
-            // Each SSE data line is a JSON-encoded message
-            // The generated code handles deserialization
-            controller.add(data as T);
-          },
-          onError: controller.addError,
-          onDone: controller.close,
-        );
-      });
-    }).catchError((Object e, StackTrace st) {
-      controller.addError(e, st);
-    });
+          return req.close().then((response) {
+            if (response.statusCode != 200) {
+              controller.addError(
+                InternalServerException(
+                  'SSE connection failed with status ${response.statusCode}',
+                ),
+              );
+              controller.close();
+              return;
+            }
+            SseParser.parse(response).listen(
+              (data) {
+                // Each SSE data line is a JSON-encoded message
+                // The generated code handles deserialization
+                controller.add(data as T);
+              },
+              onError: controller.addError,
+              onDone: controller.close,
+            );
+          });
+        })
+        .catchError((Object e, StackTrace st) {
+          controller.addError(e, st);
+        });
 
     return controller.stream;
   }
@@ -234,10 +237,8 @@ class GrpcTransport extends Transport {
   final dynamic _client;
   final List<RpcInterceptor> _interceptors;
 
-  GrpcTransport(
-    this._client, {
-    List<RpcInterceptor> interceptors = const [],
-  }) : _interceptors = interceptors;
+  GrpcTransport(this._client, {List<RpcInterceptor> interceptors = const []})
+    : _interceptors = interceptors;
 
   @override
   Future<T> unaryCall<T>(
@@ -270,9 +271,10 @@ class GrpcTransport extends Transport {
     // cancelToken.onCancel and call ResponseFuture.cancel().
     // This is handled at the generated code level (see B1: ServiceGenerator).
     throw UnimplementedError(
-        'gRPC unary call requires generated *ServiceClient for '
-        '$serviceName.$methodName. '
-        'Pass the *ServiceClient from *.pbgrpc.dart to ApiSdk(grpcClient: ...).');
+      'gRPC unary call requires generated *ServiceClient for '
+      '$serviceName.$methodName. '
+      'Pass the *ServiceClient from *.pbgrpc.dart to ApiSdk(grpcClient: ...).',
+    );
   }
 
   @override
@@ -285,8 +287,9 @@ class GrpcTransport extends Transport {
     // gRPC server streaming delegates to the generated *ServiceClient.
     // The generated code casts _client to the correct type and calls the method.
     throw UnimplementedError(
-        'gRPC server streaming requires generated *ServiceClient for '
-        '$serviceName.$methodName. '
-        'Pass the *ServiceClient from *.pbgrpc.dart to ApiSdk(grpcClient: ...).');
+      'gRPC server streaming requires generated *ServiceClient for '
+      '$serviceName.$methodName. '
+      'Pass the *ServiceClient from *.pbgrpc.dart to ApiSdk(grpcClient: ...).',
+    );
   }
 }

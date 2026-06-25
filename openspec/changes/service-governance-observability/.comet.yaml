@@ -1,5 +1,5 @@
 workflow: full
-phase: build
+phase: verify
 context_compression: off
 build_mode: direct
 build_pause: null
@@ -7,7 +7,7 @@ subagent_dispatch: null
 tdd_mode: direct
 review_mode: off
 isolation: branch
-verify_mode: null
+verify_mode: full
 auto_transition: true
 base_ref: a056d1cc26a712536657b470ba6d031927c16795
 design_doc: docs/superpowers/specs/2026-06-21-service-governance-observability-design.md
@@ -20,3 +20,6 @@ verified_at: null
 archived: false
 handoff_context: openspec/changes/service-governance-observability/.comet/handoff/design-context.json
 handoff_hash: 27cf80177d5f7d2929a3c4d3f6e77b741c32d23d4c7c3f48b7ae7d633cf1f8e0
+direct_override: true
+build_command: /opt/data/flutter/bin/dart analyze --fatal-infos
+verify_command: dart test

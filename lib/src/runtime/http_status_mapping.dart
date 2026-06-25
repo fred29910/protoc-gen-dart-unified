@@ -16,22 +16,22 @@ const int httpStatusGatewayTimeout = 504;
 /// Covers all 17 canonical codes.
 int grpcCodeToHttpStatus(int grpcCode) {
   return switch (grpcCode) {
-    0 => httpStatusOk,                    // OK
-    1 => httpStatusInternalServerError,   // CANCELLED
-    2 => httpStatusInternalServerError,   // UNKNOWN
-    3 => httpStatusBadRequest,            // INVALID_ARGUMENT
-    4 => httpStatusGatewayTimeout,        // DEADLINE_EXCEEDED
-    5 => httpStatusNotFound,              // NOT_FOUND
-    6 => httpStatusConflict,              // ALREADY_EXISTS
-    7 => httpStatusForbidden,             // PERMISSION_DENIED
-    9 => httpStatusBadRequest,            // FAILED_PRECONDITION
-    10 => httpStatusConflict,             // ABORTED
-    11 => httpStatusBadRequest,           // OUT_OF_RANGE
-    12 => httpStatusNotImplemented,       // UNIMPLEMENTED
-    13 => httpStatusInternalServerError,   // INTERNAL
-    14 => httpStatusServiceUnavailable,   // UNAVAILABLE
-    15 => httpStatusInternalServerError,   // DATA_LOSS
-    16 => httpStatusUnauthorized,         // UNAUTHENTICATED
+    0 => httpStatusOk, // OK
+    1 => httpStatusInternalServerError, // CANCELLED
+    2 => httpStatusInternalServerError, // UNKNOWN
+    3 => httpStatusBadRequest, // INVALID_ARGUMENT
+    4 => httpStatusGatewayTimeout, // DEADLINE_EXCEEDED
+    5 => httpStatusNotFound, // NOT_FOUND
+    6 => httpStatusConflict, // ALREADY_EXISTS
+    7 => httpStatusForbidden, // PERMISSION_DENIED
+    9 => httpStatusBadRequest, // FAILED_PRECONDITION
+    10 => httpStatusConflict, // ABORTED
+    11 => httpStatusBadRequest, // OUT_OF_RANGE
+    12 => httpStatusNotImplemented, // UNIMPLEMENTED
+    13 => httpStatusInternalServerError, // INTERNAL
+    14 => httpStatusServiceUnavailable, // UNAVAILABLE
+    15 => httpStatusInternalServerError, // DATA_LOSS
+    16 => httpStatusUnauthorized, // UNAUTHENTICATED
     _ => httpStatusInternalServerError,
   };
 }

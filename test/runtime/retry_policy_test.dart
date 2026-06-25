@@ -44,9 +44,7 @@ void main() {
     });
 
     test('shouldRetry uses custom predicate when provided', () {
-      const policy = RetryPolicy(
-        retryIf: _alwaysRetry,
-      );
+      const policy = RetryPolicy(retryIf: _alwaysRetry);
       expect(policy.shouldRetry(const InternalServerException()), isTrue);
     });
 

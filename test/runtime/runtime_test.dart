@@ -65,23 +65,23 @@ void main() {
 
   group('HttpStatusMapping', () {
     test('grpcCodeToHttpStatus covers all 17 codes', () {
-      expect(grpcCodeToHttpStatus(0), equals(200));   // OK
-      expect(grpcCodeToHttpStatus(1), equals(500));   // CANCELLED
-      expect(grpcCodeToHttpStatus(2), equals(500));   // UNKNOWN
-      expect(grpcCodeToHttpStatus(3), equals(400));   // INVALID_ARGUMENT
-      expect(grpcCodeToHttpStatus(4), equals(504));   // DEADLINE_EXCEEDED
-      expect(grpcCodeToHttpStatus(5), equals(404));   // NOT_FOUND
-      expect(grpcCodeToHttpStatus(6), equals(409));   // ALREADY_EXISTS
-      expect(grpcCodeToHttpStatus(7), equals(403));   // PERMISSION_DENIED
-      expect(grpcCodeToHttpStatus(9), equals(400));   // FAILED_PRECONDITION
-      expect(grpcCodeToHttpStatus(10), equals(409));  // ABORTED
-      expect(grpcCodeToHttpStatus(11), equals(400));  // OUT_OF_RANGE
-      expect(grpcCodeToHttpStatus(12), equals(501));  // UNIMPLEMENTED
-      expect(grpcCodeToHttpStatus(13), equals(500));  // INTERNAL
-      expect(grpcCodeToHttpStatus(14), equals(503));  // UNAVAILABLE
-      expect(grpcCodeToHttpStatus(15), equals(500));  // DATA_LOSS
-      expect(grpcCodeToHttpStatus(16), equals(401));  // UNAUTHENTICATED
-      expect(grpcCodeToHttpStatus(99), equals(500));  // unknown -> 500
+      expect(grpcCodeToHttpStatus(0), equals(200)); // OK
+      expect(grpcCodeToHttpStatus(1), equals(500)); // CANCELLED
+      expect(grpcCodeToHttpStatus(2), equals(500)); // UNKNOWN
+      expect(grpcCodeToHttpStatus(3), equals(400)); // INVALID_ARGUMENT
+      expect(grpcCodeToHttpStatus(4), equals(504)); // DEADLINE_EXCEEDED
+      expect(grpcCodeToHttpStatus(5), equals(404)); // NOT_FOUND
+      expect(grpcCodeToHttpStatus(6), equals(409)); // ALREADY_EXISTS
+      expect(grpcCodeToHttpStatus(7), equals(403)); // PERMISSION_DENIED
+      expect(grpcCodeToHttpStatus(9), equals(400)); // FAILED_PRECONDITION
+      expect(grpcCodeToHttpStatus(10), equals(409)); // ABORTED
+      expect(grpcCodeToHttpStatus(11), equals(400)); // OUT_OF_RANGE
+      expect(grpcCodeToHttpStatus(12), equals(501)); // UNIMPLEMENTED
+      expect(grpcCodeToHttpStatus(13), equals(500)); // INTERNAL
+      expect(grpcCodeToHttpStatus(14), equals(503)); // UNAVAILABLE
+      expect(grpcCodeToHttpStatus(15), equals(500)); // DATA_LOSS
+      expect(grpcCodeToHttpStatus(16), equals(401)); // UNAUTHENTICATED
+      expect(grpcCodeToHttpStatus(99), equals(500)); // unknown -> 500
     });
 
     test('grpcCodeToExceptionName covers all 17 codes', () {

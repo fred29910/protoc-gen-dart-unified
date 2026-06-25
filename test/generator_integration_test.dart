@@ -4,7 +4,8 @@ import 'package:protoc_plugin/src/gen/google/protobuf/descriptor.pb.dart';
 import 'package:protoc_plugin/src/gen/google/protobuf/compiler/plugin.pb.dart';
 import 'package:protoc_gen_dart_unified/src/generator.dart';
 import 'package:protoc_gen_dart_unified/src/parser/google/api/annotations.pb.dart';
-import 'package:protoc_gen_dart_unified/src/parser/google/api/http.pb.dart' as http_rule;
+import 'package:protoc_gen_dart_unified/src/parser/google/api/http.pb.dart'
+    as http_rule;
 
 void main() {
   group('Code Generation', () {
@@ -12,20 +13,23 @@ void main() {
       final file = FileDescriptorProto()
         ..name = 'user.proto'
         ..package = 'user.v1'
-        ..service.add(ServiceDescriptorProto()
-          ..name = 'UserService'
-          ..method.add(MethodDescriptorProto()
-            ..name = 'ListUsers'
-            ..inputType = '.user.v1.ListUsersRequest'
-            ..outputType = '.user.v1.User'
-            ..serverStreaming = true
-            ..options = _buildHttpOptions('get', '/v1/users')));
+        ..service.add(
+          ServiceDescriptorProto()
+            ..name = 'UserService'
+            ..method.add(
+              MethodDescriptorProto()
+                ..name = 'ListUsers'
+                ..inputType = '.user.v1.ListUsersRequest'
+                ..outputType = '.user.v1.User'
+                ..serverStreaming = true
+                ..options = _buildHttpOptions('get', '/v1/users'),
+            ),
+        );
 
       final generator = CodeGenerator();
-      final response = generator.generate(CodeGeneratorRequest(
-        fileToGenerate: ['user.proto'],
-        protoFile: [file],
-      ));
+      final response = generator.generate(
+        CodeGeneratorRequest(fileToGenerate: ['user.proto'], protoFile: [file]),
+      );
 
       expect(response.error, isEmpty);
       // Default mock=true generates 3 files: service + mock + example_test
@@ -44,19 +48,22 @@ void main() {
       final file = FileDescriptorProto()
         ..name = 'user.proto'
         ..package = 'user.v1'
-        ..service.add(ServiceDescriptorProto()
-          ..name = 'UserService'
-          ..method.add(MethodDescriptorProto()
-            ..name = 'GetUser'
-            ..inputType = '.user.v1.GetUserRequest'
-            ..outputType = '.user.v1.User'
-            ..options = _buildHttpOptions('get', '/v1/users/{id}')));
+        ..service.add(
+          ServiceDescriptorProto()
+            ..name = 'UserService'
+            ..method.add(
+              MethodDescriptorProto()
+                ..name = 'GetUser'
+                ..inputType = '.user.v1.GetUserRequest'
+                ..outputType = '.user.v1.User'
+                ..options = _buildHttpOptions('get', '/v1/users/{id}'),
+            ),
+        );
 
       final generator = CodeGenerator();
-      final response = generator.generate(CodeGeneratorRequest(
-        fileToGenerate: ['user.proto'],
-        protoFile: [file],
-      ));
+      final response = generator.generate(
+        CodeGeneratorRequest(fileToGenerate: ['user.proto'], protoFile: [file]),
+      );
 
       expect(response.error, isEmpty);
       final content = response.file
@@ -72,27 +79,28 @@ void main() {
       final file = FileDescriptorProto()
         ..name = 'user.proto'
         ..package = 'user.v1'
-        ..service.add(ServiceDescriptorProto()
-          ..name = 'UserService'
-          ..method.addAll([
-            MethodDescriptorProto()
-              ..name = 'GetUser'
-              ..inputType = '.user.v1.GetUserRequest'
-              ..outputType = '.user.v1.User'
-              ..options = _buildHttpOptions('get', '/v1/users/{id}'),
-            MethodDescriptorProto()
-              ..name = 'ListUsers'
-              ..inputType = '.user.v1.ListUsersRequest'
-              ..outputType = '.user.v1.User'
-              ..serverStreaming = true
-              ..options = _buildHttpOptions('get', '/v1/users'),
-          ]));
+        ..service.add(
+          ServiceDescriptorProto()
+            ..name = 'UserService'
+            ..method.addAll([
+              MethodDescriptorProto()
+                ..name = 'GetUser'
+                ..inputType = '.user.v1.GetUserRequest'
+                ..outputType = '.user.v1.User'
+                ..options = _buildHttpOptions('get', '/v1/users/{id}'),
+              MethodDescriptorProto()
+                ..name = 'ListUsers'
+                ..inputType = '.user.v1.ListUsersRequest'
+                ..outputType = '.user.v1.User'
+                ..serverStreaming = true
+                ..options = _buildHttpOptions('get', '/v1/users'),
+            ]),
+        );
 
       final generator = CodeGenerator();
-      final response = generator.generate(CodeGeneratorRequest(
-        fileToGenerate: ['user.proto'],
-        protoFile: [file],
-      ));
+      final response = generator.generate(
+        CodeGeneratorRequest(fileToGenerate: ['user.proto'], protoFile: [file]),
+      );
 
       expect(response.error, isEmpty);
       final content = response.file
@@ -108,20 +116,26 @@ void main() {
       final file = FileDescriptorProto()
         ..name = 'user.proto'
         ..package = 'user.v1'
-        ..service.add(ServiceDescriptorProto()
-          ..name = 'UserService'
-          ..method.add(MethodDescriptorProto()
-            ..name = 'GetUser'
-            ..inputType = '.user.v1.GetUserRequest'
-            ..outputType = '.user.v1.User'
-            ..options = _buildHttpOptions('get', '/v1/users/{id}')));
+        ..service.add(
+          ServiceDescriptorProto()
+            ..name = 'UserService'
+            ..method.add(
+              MethodDescriptorProto()
+                ..name = 'GetUser'
+                ..inputType = '.user.v1.GetUserRequest'
+                ..outputType = '.user.v1.User'
+                ..options = _buildHttpOptions('get', '/v1/users/{id}'),
+            ),
+        );
 
       final generator = CodeGenerator();
-      final response = generator.generate(CodeGeneratorRequest(
-        fileToGenerate: ['user.proto'],
-        protoFile: [file],
-        parameter: 'mock=false',
-      ));
+      final response = generator.generate(
+        CodeGeneratorRequest(
+          fileToGenerate: ['user.proto'],
+          protoFile: [file],
+          parameter: 'mock=false',
+        ),
+      );
 
       expect(response.error, isEmpty);
       expect(response.file, hasLength(1));
@@ -130,8 +144,11 @@ void main() {
   });
 }
 
-MethodOptions _buildHttpOptions(String httpMethod, String path,
-    {String body = ''}) {
+MethodOptions _buildHttpOptions(
+  String httpMethod,
+  String path, {
+  String body = '',
+}) {
   final httpRuleMsg = http_rule.HttpRule();
   switch (httpMethod) {
     case 'get':

@@ -29,7 +29,9 @@ class AuthInterceptor implements RpcInterceptor {
     if (token != null && token.isNotEmpty) {
       final existingHeaders = context.options?.headers ?? {};
       final updatedHeaders = Map<String, String>.from(existingHeaders);
-      updatedHeaders[_headerKey] = token.startsWith('Bearer ') ? token : 'Bearer $token';
+      updatedHeaders[_headerKey] = token.startsWith('Bearer ')
+          ? token
+          : 'Bearer $token';
       final baseOptions = context.options ?? RpcCallOptions();
       final updatedOptions = baseOptions.copyWith(headers: updatedHeaders);
       final updatedContext = context.copyWith(options: updatedOptions);

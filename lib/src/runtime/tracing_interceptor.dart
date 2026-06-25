@@ -14,15 +14,15 @@ class TracingInterceptor implements RpcInterceptor {
 
   /// Creates a tracing interceptor that generates random trace IDs.
   const TracingInterceptor()
-      : _traceIdProvider = null,
-        _parentIdProvider = null;
+    : _traceIdProvider = null,
+      _parentIdProvider = null;
 
   /// Creates a tracing interceptor with custom trace/parent ID providers.
   const TracingInterceptor.withProviders({
     required String Function() traceIdProvider,
     required String Function() parentIdProvider,
-  })  : _traceIdProvider = traceIdProvider,
-        _parentIdProvider = parentIdProvider;
+  }) : _traceIdProvider = traceIdProvider,
+       _parentIdProvider = parentIdProvider;
 
   @override
   Future<T> intercept<T>(

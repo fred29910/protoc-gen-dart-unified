@@ -7,7 +7,9 @@ class QueryField {
 
   @override
   bool operator ==(Object other) =>
-      other is QueryField && name == other.name && dartAccessor == other.dartAccessor;
+      other is QueryField &&
+      name == other.name &&
+      dartAccessor == other.dartAccessor;
 
   @override
   int get hashCode => Object.hash(name, dartAccessor);

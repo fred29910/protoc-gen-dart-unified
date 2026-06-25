@@ -85,10 +85,7 @@ class HttpMapper {
     for (final field in fields) {
       if (pathFields.contains(field.name)) continue;
       if (bodyField.isNotEmpty && field.name == bodyField) continue;
-      queryFields.add(QueryField(
-        name: field.name,
-        dartAccessor: field.name,
-      ));
+      queryFields.add(QueryField(name: field.name, dartAccessor: field.name));
     }
     return queryFields;
   }

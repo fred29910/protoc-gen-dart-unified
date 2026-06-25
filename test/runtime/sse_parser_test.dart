@@ -12,7 +12,9 @@ void main() {
     });
 
     test('parses multiple data events', () async {
-      final input = utf8.encode('data: first\n\ndata: second\n\ndata: third\n\n');
+      final input = utf8.encode(
+        'data: first\n\ndata: second\n\ndata: third\n\n',
+      );
       final stream = Stream.fromIterable([input]);
       final results = await SseParser.parse(stream).toList();
       expect(results, equals(['first', 'second', 'third']));

@@ -60,7 +60,10 @@ void main() {
         },
       );
 
-      expect(log, equals(['A:before', 'B:before', 'finalCall', 'B:after', 'A:after']));
+      expect(
+        log,
+        equals(['A:before', 'B:before', 'finalCall', 'B:after', 'A:after']),
+      );
     });
 
     test('interceptor can modify request', () async {
@@ -207,9 +210,7 @@ class _ModifyOptionsInterceptor implements RpcInterceptor {
     Future<T> Function(InterceptorContext context) proceed,
   ) async {
     final baseOptions = context.options ?? const RpcCallOptions();
-    final newOptions = baseOptions.copyWith(
-      headers: {'X-Custom': 'modified'},
-    );
+    final newOptions = baseOptions.copyWith(headers: {'X-Custom': 'modified'});
     return proceed(context.copyWith(options: newOptions));
   }
 }

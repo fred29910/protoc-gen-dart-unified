@@ -10,74 +10,94 @@ import 'package:protoc_gen_dart_unified/src/model/service_model.dart';
 
 void main() {
   group('ExtensionRegistry', () {
-    test('createHttpExtensionRegistry returns registry with http extension',
-        () {
-      final registry = createHttpExtensionRegistry();
-      expect(registry, isNotNull);
-    });
+    test(
+      'createHttpExtensionRegistry returns registry with http extension',
+      () {
+        final registry = createHttpExtensionRegistry();
+        expect(registry, isNotNull);
+      },
+    );
   });
 
   group('DescriptorParser google.api.http extraction', () {
     test(
-        'extracts HttpRule from method with google.api.http get annotation',
-        () {
-      final file = FileDescriptorProto()
-        ..name = 'user.proto'
-        ..package = 'user.v1'
-        ..service.add(ServiceDescriptorProto()
-          ..name = 'UserService'
-          ..method.add(MethodDescriptorProto()
-            ..name = 'GetUser'
-            ..inputType = '.user.v1.GetUserRequest'
-            ..outputType = '.user.v1.User'
-            ..options = _buildHttpOptions('get', '/v1/users/{id}')));
+      'extracts HttpRule from method with google.api.http get annotation',
+      () {
+        final file = FileDescriptorProto()
+          ..name = 'user.proto'
+          ..package = 'user.v1'
+          ..service.add(
+            ServiceDescriptorProto()
+              ..name = 'UserService'
+              ..method.add(
+                MethodDescriptorProto()
+                  ..name = 'GetUser'
+                  ..inputType = '.user.v1.GetUserRequest'
+                  ..outputType = '.user.v1.User'
+                  ..options = _buildHttpOptions('get', '/v1/users/{id}'),
+              ),
+          );
 
-      final parser = DescriptorParser();
-      final services = parser.parse([file]);
+        final parser = DescriptorParser();
+        final services = parser.parse([file]);
 
-      expect(services, hasLength(1));
-      expect(services.first.methods, hasLength(1));
+        expect(services, hasLength(1));
+        expect(services.first.methods, hasLength(1));
 
-      final method = services.first.methods.first;
-      expect(method.httpRule, isNotNull,
-          reason: 'google.api.http annotation should not be silently lost');
-      expect(method.httpRule!.kind, equals('get'));
-      expect(method.httpRule!.path, equals('/v1/users/{id}'));
-    });
+        final method = services.first.methods.first;
+        expect(
+          method.httpRule,
+          isNotNull,
+          reason: 'google.api.http annotation should not be silently lost',
+        );
+        expect(method.httpRule!.kind, equals('get'));
+        expect(method.httpRule!.path, equals('/v1/users/{id}'));
+      },
+    );
 
-    test('extracts HttpRule from method with google.api.http post annotation',
-        () {
-      final file = FileDescriptorProto()
-        ..name = 'user.proto'
-        ..package = 'user.v1'
-        ..service.add(ServiceDescriptorProto()
-          ..name = 'UserService'
-          ..method.add(MethodDescriptorProto()
-            ..name = 'CreateUser'
-            ..inputType = '.user.v1.CreateUserRequest'
-            ..outputType = '.user.v1.User'
-            ..options = _buildHttpOptions('post', '/v1/users', body: '*')));
+    test(
+      'extracts HttpRule from method with google.api.http post annotation',
+      () {
+        final file = FileDescriptorProto()
+          ..name = 'user.proto'
+          ..package = 'user.v1'
+          ..service.add(
+            ServiceDescriptorProto()
+              ..name = 'UserService'
+              ..method.add(
+                MethodDescriptorProto()
+                  ..name = 'CreateUser'
+                  ..inputType = '.user.v1.CreateUserRequest'
+                  ..outputType = '.user.v1.User'
+                  ..options = _buildHttpOptions('post', '/v1/users', body: '*'),
+              ),
+          );
 
-      final parser = DescriptorParser();
-      final services = parser.parse([file]);
+        final parser = DescriptorParser();
+        final services = parser.parse([file]);
 
-      final method = services.first.methods.first;
-      expect(method.httpRule, isNotNull);
-      expect(method.httpRule!.kind, equals('post'));
-      expect(method.httpRule!.path, equals('/v1/users'));
-      expect(method.httpRule!.body, equals('*'));
-    });
+        final method = services.first.methods.first;
+        expect(method.httpRule, isNotNull);
+        expect(method.httpRule!.kind, equals('post'));
+        expect(method.httpRule!.path, equals('/v1/users'));
+        expect(method.httpRule!.body, equals('*'));
+      },
+    );
 
     test('returns null HttpRule for method without annotation', () {
       final file = FileDescriptorProto()
         ..name = 'user.proto'
         ..package = 'user.v1'
-        ..service.add(ServiceDescriptorProto()
-          ..name = 'UserService'
-          ..method.add(MethodDescriptorProto()
-            ..name = 'GetUser'
-            ..inputType = '.user.v1.GetUserRequest'
-            ..outputType = '.user.v1.User'));
+        ..service.add(
+          ServiceDescriptorProto()
+            ..name = 'UserService'
+            ..method.add(
+              MethodDescriptorProto()
+                ..name = 'GetUser'
+                ..inputType = '.user.v1.GetUserRequest'
+                ..outputType = '.user.v1.User',
+            ),
+        );
 
       final parser = DescriptorParser();
       final services = parser.parse([file]);
@@ -90,13 +110,17 @@ void main() {
       final file = FileDescriptorProto()
         ..name = 'user.proto'
         ..package = 'user.v1'
-        ..service.add(ServiceDescriptorProto()
-          ..name = 'UserService'
-          ..method.add(MethodDescriptorProto()
-            ..name = 'ListUsers'
-            ..inputType = '.user.v1.ListUsersRequest'
-            ..outputType = '.user.v1.User'
-            ..serverStreaming = true));
+        ..service.add(
+          ServiceDescriptorProto()
+            ..name = 'UserService'
+            ..method.add(
+              MethodDescriptorProto()
+                ..name = 'ListUsers'
+                ..inputType = '.user.v1.ListUsersRequest'
+                ..outputType = '.user.v1.User'
+                ..serverStreaming = true,
+            ),
+        );
 
       final parser = DescriptorParser();
       final services = parser.parse([file]);
@@ -110,13 +134,17 @@ void main() {
       final file = FileDescriptorProto()
         ..name = 'user.proto'
         ..package = 'user.v1'
-        ..service.add(ServiceDescriptorProto()
-          ..name = 'UserService'
-          ..method.add(MethodDescriptorProto()
-            ..name = 'UploadUsers'
-            ..inputType = '.user.v1.UploadRequest'
-            ..outputType = '.user.v1.UploadResponse'
-            ..clientStreaming = true));
+        ..service.add(
+          ServiceDescriptorProto()
+            ..name = 'UserService'
+            ..method.add(
+              MethodDescriptorProto()
+                ..name = 'UploadUsers'
+                ..inputType = '.user.v1.UploadRequest'
+                ..outputType = '.user.v1.UploadResponse'
+                ..clientStreaming = true,
+            ),
+        );
 
       final parser = DescriptorParser();
       final services = parser.parse([file]);
@@ -130,8 +158,11 @@ void main() {
 
 /// Helper to build MethodOptions with google.api.http annotation.
 /// Creates a HttpRule message and sets it as extension field 72295728.
-MethodOptions _buildHttpOptions(String httpMethod, String path,
-    {String body = ''}) {
+MethodOptions _buildHttpOptions(
+  String httpMethod,
+  String path, {
+  String body = '',
+}) {
   // Build HttpRule with the specified pattern
   final httpRuleMsg = http_rule.HttpRule();
   switch (httpMethod) {

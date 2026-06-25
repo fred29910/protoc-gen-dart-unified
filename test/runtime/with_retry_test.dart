@@ -7,13 +7,10 @@ void main() {
   group('withRetry', () {
     test('succeeds on first attempt without retry', () async {
       var attempts = 0;
-      final result = await withRetry(
-        () async {
-          attempts++;
-          return 'success';
-        },
-        RetryPolicy(maxAttempts: 3),
-      );
+      final result = await withRetry(() async {
+        attempts++;
+        return 'success';
+      }, RetryPolicy(maxAttempts: 3));
       expect(result, equals('success'));
       expect(attempts, equals(1));
     });
@@ -27,13 +24,10 @@ void main() {
       );
 
       await expectLater(
-        withRetry(
-          () async {
-            attempts++;
-            throw UnavailableException('temporary failure');
-          },
-          policy,
-        ),
+        withRetry(() async {
+          attempts++;
+          throw UnavailableException('temporary failure');
+        }, policy),
         throwsA(isA<UnavailableException>()),
       );
 
@@ -49,14 +43,11 @@ void main() {
         jitterFactor: 0,
       );
 
-      final result = await withRetry(
-        () async {
-          attempts++;
-          if (attempts < 3) throw UnavailableException('not yet');
-          return 'done';
-        },
-        policy,
-      );
+      final result = await withRetry(() async {
+        attempts++;
+        if (attempts < 3) throw UnavailableException('not yet');
+        return 'done';
+      }, policy);
 
       expect(result, equals('done'));
       expect(attempts, equals(3));
@@ -71,13 +62,10 @@ void main() {
       );
 
       await expectLater(
-        withRetry(
-          () async {
-            attempts++;
-            throw InvalidArgumentException('bad request');
-          },
-          policy,
-        ),
+        withRetry(() async {
+          attempts++;
+          throw InvalidArgumentException('bad request');
+        }, policy),
         throwsA(isA<InvalidArgumentException>()),
       );
 

@@ -9,15 +9,18 @@ abstract class ApiException implements Exception {
 }
 
 class InvalidArgumentException extends ApiException {
-  const InvalidArgumentException([String? msg]) : super(msg ?? 'Invalid argument', 3);
+  const InvalidArgumentException([String? msg])
+    : super(msg ?? 'Invalid argument', 3);
 }
 
 class UnauthenticatedException extends ApiException {
-  const UnauthenticatedException([String? msg]) : super(msg ?? 'Unauthenticated', 16);
+  const UnauthenticatedException([String? msg])
+    : super(msg ?? 'Unauthenticated', 16);
 }
 
 class PermissionDeniedException extends ApiException {
-  const PermissionDeniedException([String? msg]) : super(msg ?? 'Permission denied', 7);
+  const PermissionDeniedException([String? msg])
+    : super(msg ?? 'Permission denied', 7);
 }
 
 class NotFoundException extends ApiException {
@@ -25,15 +28,18 @@ class NotFoundException extends ApiException {
 }
 
 class ResourceExhaustedException extends ApiException {
-  const ResourceExhaustedException([String? msg]) : super(msg ?? 'Resource exhausted', 8);
+  const ResourceExhaustedException([String? msg])
+    : super(msg ?? 'Resource exhausted', 8);
 }
 
 class InternalServerException extends ApiException {
-  const InternalServerException([String? msg]) : super(msg ?? 'Internal server error', 13);
+  const InternalServerException([String? msg])
+    : super(msg ?? 'Internal server error', 13);
 }
 
 class RpcTimeoutException extends ApiException {
-  const RpcTimeoutException([String? msg]) : super(msg ?? 'Deadline exceeded', 4);
+  const RpcTimeoutException([String? msg])
+    : super(msg ?? 'Deadline exceeded', 4);
 }
 
 class CancelledException extends ApiException {
@@ -45,7 +51,8 @@ class UnknownException extends ApiException {
 }
 
 class AlreadyExistsException extends ApiException {
-  const AlreadyExistsException([String? msg]) : super(msg ?? 'Already exists', 6);
+  const AlreadyExistsException([String? msg])
+    : super(msg ?? 'Already exists', 6);
 }
 
 class AbortedException extends ApiException {
@@ -57,7 +64,8 @@ class OutOfRangeException extends ApiException {
 }
 
 class UnimplementedException extends ApiException {
-  const UnimplementedException([String? msg]) : super(msg ?? 'Unimplemented', 12);
+  const UnimplementedException([String? msg])
+    : super(msg ?? 'Unimplemented', 12);
 }
 
 class UnavailableException extends ApiException {
@@ -69,5 +77,6 @@ class DataLossException extends ApiException {
 }
 
 class FailedPreconditionException extends ApiException {
-  const FailedPreconditionException([String? msg]) : super(msg ?? 'Failed precondition', 9);
+  const FailedPreconditionException([String? msg])
+    : super(msg ?? 'Failed precondition', 9);
 }

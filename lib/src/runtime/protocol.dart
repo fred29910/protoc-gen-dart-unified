@@ -1,5 +1,1 @@
-enum Protocol {
-  auto,
-  http,
-  grpc,
-}
+enum Protocol { auto, http, grpc }

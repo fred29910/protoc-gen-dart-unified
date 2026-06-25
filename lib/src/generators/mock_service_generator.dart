@@ -15,9 +15,11 @@ class MockServiceGenerator {
 
   /// Generates the complete mock file content.
   String generate() {
-    final library = Library((b) => b
-      ..directives.addAll(_buildDirectives())
-      ..body.add(_buildMockClass()));
+    final library = Library(
+      (b) => b
+        ..directives.addAll(_buildDirectives())
+        ..body.add(_buildMockClass()),
+    );
 
     final emitter = DartEmitter.scoped();
     final source = library.accept(emitter).toString();
@@ -28,7 +30,9 @@ class MockServiceGenerator {
   List<Directive> _buildDirectives() {
     return [
       Directive.import('package:mockito/annotations.dart'),
-      Directive.import('../${service.protoFileName.replaceAll('.proto', '.pb.dart')}'),
+      Directive.import(
+        '../${service.protoFileName.replaceAll('.proto', '.pb.dart')}',
+      ),
       Directive.import('${_dartServiceName(service.name)}.dart'),
     ];
   }
@@ -37,13 +41,17 @@ class MockServiceGenerator {
   Class _buildMockClass() {
     final mockClassName = 'Mock${service.name}';
 
-    return Class((b) => b
-      ..name = mockClassName
-      ..annotations.add(refer('GenerateNiceMocks').call([
-        literalList([refer(mockClassName)])
-      ]))
-      ..implements.add(refer(service.name))
-      ..methods.addAll(service.methods.map(_buildMockMethod)));
+    return Class(
+      (b) => b
+        ..name = mockClassName
+        ..annotations.add(
+          refer('GenerateNiceMocks').call([
+            literalList([refer(mockClassName)]),
+          ]),
+        )
+        ..implements.add(refer(service.name))
+        ..methods.addAll(service.methods.map(_buildMockMethod)),
+    );
   }
 
   /// Builds a single mock method that throws UnimplementedError.
@@ -53,22 +61,30 @@ class MockServiceGenerator {
         ? refer('Stream<${method.outputType}>')
         : refer('Future<${method.outputType}>');
 
-    return Method((b) => b
-      ..name = methodName
-      ..annotations.add(refer('override'))
-      ..returns = returnType
-      ..requiredParameters.add(Parameter((p) => p
-        ..name = 'request'
-        ..type = refer(method.inputType)))
-      ..body = const Code('throw UnimplementedError();'));
+    return Method(
+      (b) => b
+        ..name = methodName
+        ..annotations.add(refer('override'))
+        ..returns = returnType
+        ..requiredParameters.add(
+          Parameter(
+            (p) => p
+              ..name = 'request'
+              ..type = refer(method.inputType),
+          ),
+        )
+        ..body = const Code('throw UnimplementedError();'),
+    );
   }
 
   /// Converts proto service name to Dart file name (PascalCase → snake_case).
   String _dartServiceName(String protoName) {
-    return protoName.replaceAllMapped(
-      RegExp(r'[A-Z]'),
-      (match) => '_${match.group(0)!.toLowerCase()}',
-    ).replaceFirst('_', '');
+    return protoName
+        .replaceAllMapped(
+          RegExp(r'[A-Z]'),
+          (match) => '_${match.group(0)!.toLowerCase()}',
+        )
+        .replaceFirst('_', '');
   }
 
   /// Converts proto method name to Dart method name (PascalCase → camelCase).

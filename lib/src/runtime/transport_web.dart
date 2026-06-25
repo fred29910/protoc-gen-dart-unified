@@ -18,11 +18,9 @@ class HttpTransport extends Transport {
   final Dio _dio;
   final List<RpcInterceptor> _interceptors;
 
-  HttpTransport(
-    String endpoint, {
-    List<RpcInterceptor> interceptors = const [],
-  })  : _dio = Dio(BaseOptions(baseUrl: endpoint)),
-        _interceptors = interceptors;
+  HttpTransport(String endpoint, {List<RpcInterceptor> interceptors = const []})
+    : _dio = Dio(BaseOptions(baseUrl: endpoint)),
+      _interceptors = interceptors;
 
   @override
   Future<T> unaryCall<T>(
@@ -103,7 +101,8 @@ class HttpTransport extends Transport {
   }) {
     // Phase 3: SSE streaming
     throw UnimplementedError(
-        'HTTP server streaming requires SSE, deferred to Phase 3');
+      'HTTP server streaming requires SSE, deferred to Phase 3',
+    );
   }
 
   ApiException _mapDioException(DioException e) {

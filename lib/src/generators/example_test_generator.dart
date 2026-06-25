@@ -15,9 +15,11 @@ class ExampleTestGenerator {
 
   /// Generates the complete example test file content.
   String generate() {
-    final library = Library((b) => b
-      ..directives.addAll(_buildDirectives())
-      ..body.add(_buildMainFunction()));
+    final library = Library(
+      (b) => b
+        ..directives.addAll(_buildDirectives())
+        ..body.add(_buildMainFunction()),
+    );
 
     final emitter = DartEmitter.scoped();
     final source = library.accept(emitter).toString();
@@ -30,7 +32,9 @@ class ExampleTestGenerator {
     return [
       Directive.import('package:test/test.dart'),
       Directive.import('package:mockito/mockito.dart'),
-      Directive.import('../${service.protoFileName.replaceAll('.proto', '.pb.dart')}'),
+      Directive.import(
+        '../${service.protoFileName.replaceAll('.proto', '.pb.dart')}',
+      ),
       Directive.import('${serviceName}_mock.dart'),
       Directive.import('${serviceName}.dart'),
     ];
@@ -41,19 +45,23 @@ class ExampleTestGenerator {
     final mockClassName = 'Mock${service.name}';
     final fieldName = _dartMethodName(service.name);
 
-    return Method((b) => b
-      ..name = 'main'
-      ..returns = refer('void')
-      ..body = Block((block) => block
-        ..statements.add(Code('group(\'${service.name}\', () {'))
-        ..statements.add(Code('late $mockClassName $fieldName;'))
-        ..statements.add(const Code(''))
-        ..statements.add(Code('setUp(() {'))
-        ..statements.add(Code('$fieldName = $mockClassName();'))
-        ..statements.add(const Code('});'))
-        ..statements.add(const Code(''))
-        ..statements.addAll(service.methods.map(_buildTestMethod))
-        ..statements.add(const Code('});'))));
+    return Method(
+      (b) => b
+        ..name = 'main'
+        ..returns = refer('void')
+        ..body = Block(
+          (block) => block
+            ..statements.add(Code('group(\'${service.name}\', () {'))
+            ..statements.add(Code('late $mockClassName $fieldName;'))
+            ..statements.add(const Code(''))
+            ..statements.add(Code('setUp(() {'))
+            ..statements.add(Code('$fieldName = $mockClassName();'))
+            ..statements.add(const Code('});'))
+            ..statements.add(const Code(''))
+            ..statements.addAll(service.methods.map(_buildTestMethod))
+            ..statements.add(const Code('});')),
+        ),
+    );
   }
 
   /// Builds a single test method with commented stub template.
@@ -83,10 +91,12 @@ class ExampleTestGenerator {
 
   /// Converts proto service name to Dart file name (PascalCase → snake_case).
   String _dartServiceName(String protoName) {
-    return protoName.replaceAllMapped(
-      RegExp(r'[A-Z]'),
-      (match) => '_${match.group(0)!.toLowerCase()}',
-    ).replaceFirst('_', '');
+    return protoName
+        .replaceAllMapped(
+          RegExp(r'[A-Z]'),
+          (match) => '_${match.group(0)!.toLowerCase()}',
+        )
+        .replaceFirst('_', '');
   }
 
   /// Converts proto method name to Dart method name (PascalCase → camelCase).

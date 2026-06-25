@@ -8,9 +8,7 @@ import 'package:protoc_gen_dart_unified/src/model/field_model.dart';
 void main() {
   group('HttpMapper.mapPath', () {
     test('parses simple path with single field', () {
-      final fields = [
-        FieldModel(name: 'id', type: 'int64'),
-      ];
+      final fields = [FieldModel(name: 'id', type: 'int64')];
       final result = HttpMapper.mapPath('/v1/users/{id}', fields);
       expect(result.literalSegments, equals(['/v1/users/']));
       expect(result.pathFieldNames, equals(['id']));
@@ -21,15 +19,16 @@ void main() {
         FieldModel(name: 'user_id', type: 'int64'),
         FieldModel(name: 'post_id', type: 'int64'),
       ];
-      final result = HttpMapper.mapPath('/v1/users/{user_id}/posts/{post_id}', fields);
+      final result = HttpMapper.mapPath(
+        '/v1/users/{user_id}/posts/{post_id}',
+        fields,
+      );
       expect(result.literalSegments, equals(['/v1/users/', '/posts/']));
       expect(result.pathFieldNames, equals(['user_id', 'post_id']));
     });
 
     test('parses path with segment wildcard', () {
-      final fields = [
-        FieldModel(name: 'name', type: 'string'),
-      ];
+      final fields = [FieldModel(name: 'name', type: 'string')];
       final result = HttpMapper.mapPath('/files/{name=segments/*}', fields);
       expect(result.literalSegments, equals(['/files/']));
       expect(result.pathFieldNames, equals(['name']));
@@ -42,9 +41,7 @@ void main() {
     });
 
     test('parses path with nested field reference', () {
-      final fields = [
-        FieldModel(name: 'user.id', type: 'string'),
-      ];
+      final fields = [FieldModel(name: 'user.id', type: 'string')];
       final result = HttpMapper.mapPath('/v1/users/{user.id}', fields);
       expect(result.literalSegments, equals(['/v1/users/']));
       expect(result.pathFieldNames, equals(['user.id']));
@@ -114,9 +111,7 @@ void main() {
     });
 
     test('body: "" maps to no body', () {
-      final fields = [
-        FieldModel(name: 'id', type: 'int64'),
-      ];
+      final fields = [FieldModel(name: 'id', type: 'int64')];
       final result = HttpMapper.resolveBody(fields, '');
       expect(result.kind, equals('none'));
       expect(result.fieldName, isNull);
