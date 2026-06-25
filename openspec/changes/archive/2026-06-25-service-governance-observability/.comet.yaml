@@ -1,5 +1,5 @@
 workflow: full
-phase: verify
+phase: archive
 context_compression: off
 build_mode: direct
 build_pause: null
@@ -12,12 +12,12 @@ auto_transition: true
 base_ref: a056d1cc26a712536657b470ba6d031927c16795
 design_doc: docs/superpowers/specs/2026-06-21-service-governance-observability-design.md
 plan: null
-verify_result: pending
-verification_report: null
-branch_status: pending
+verify_result: pass
+verification_report: docs/superpowers/reports/2026-06-25-service-governance-observability-verify.md
+branch_status: handled
 created_at: 2026-06-20
-verified_at: null
-archived: false
+verified_at: 2026-06-25
+archived: true
 handoff_context: openspec/changes/service-governance-observability/.comet/handoff/design-context.json
 handoff_hash: 27cf80177d5f7d2929a3c4d3f6e77b741c32d23d4c7c3f48b7ae7d633cf1f8e0
 direct_override: true

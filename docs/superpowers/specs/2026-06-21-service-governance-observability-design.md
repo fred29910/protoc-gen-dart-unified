@@ -2,6 +2,8 @@
 comet_change: service-governance-observability
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-06-25-service-governance-observability
+status: final
 ---
 
 # Service Governance and Observability Design
