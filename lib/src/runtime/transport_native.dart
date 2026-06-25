@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io' as io;
 import 'package:dio/dio.dart';
 import 'transport.dart';
 import 'api_exception.dart';
@@ -105,7 +104,7 @@ class HttpTransport extends Transport {
     Object request, {
     RpcCallOptions? options,
   }) {
-    // Phase 3: SSE streaming via dart:io HttpClient
+    // SSE streaming via dio ResponseType.stream
     // Note: For Web platforms, use transport_web.dart which may need
     // package:http with fetch_client for SSE support.
     return _sseStream<T>(serviceName, methodName, request, options);
@@ -119,58 +118,53 @@ class HttpTransport extends Transport {
   ) {
     final controller = StreamController<T>();
     final path = options?.httpPath ?? '/$serviceName/$methodName';
-    final uri = Uri.parse('${_dio.options.baseUrl}$path');
 
-    // Build query parameters
     final queryParams = <String, dynamic>{};
     if (options?.httpQueryParams != null) {
       queryParams.addAll(options!.httpQueryParams!);
     }
-    final fullUri = uri.replace(
-      queryParameters: queryParams.isNotEmpty ? queryParams : null,
-    );
 
-    io.HttpClient()
-        .openUrl(options?.httpMethod ?? 'GET', fullUri)
-        .then((req) {
-          // Add headers
-          options?.headers?.forEach((key, value) {
-            req.headers.set(key, value);
-          });
-          req.headers.set('Accept', 'text/event-stream');
-          req.headers.set('Cache-Control', 'no-cache');
+    final headers = <String, String>{
+      'Accept': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+    };
+    if (options?.headers != null) {
+      headers.addAll(options!.headers!);
+    }
 
-          // Add body for non-GET methods
-          if (options?.httpBody != null &&
-              (options?.httpMethod ?? 'GET') != 'GET') {
-            final bodyData = options!.httpBody;
-            if (bodyData is String) {
-              req.write(bodyData);
-            } else {
-              req.write(bodyData.toString());
-            }
-          }
-
-          return req.close().then((response) {
-            if (response.statusCode != 200) {
-              controller.addError(
-                InternalServerException(
-                  'SSE connection failed with status ${response.statusCode}',
-                ),
-              );
-              controller.close();
-              return;
-            }
-            SseParser.parse(response).listen(
-              (data) {
-                // Each SSE data line is a JSON-encoded message
-                // The generated code handles deserialization
-                controller.add(data as T);
-              },
-              onError: controller.addError,
-              onDone: controller.close,
+    _dio
+        .request<ResponseBody>(
+          path,
+          data: options?.httpBody,
+          queryParameters: queryParams.isNotEmpty ? queryParams : null,
+          options: Options(
+            method: options?.httpMethod?.toUpperCase() ?? 'GET',
+            responseType: ResponseType.stream,
+            headers: headers,
+            sendTimeout: options?.timeout,
+            receiveTimeout: options?.timeout,
+          ),
+        )
+        .then((response) {
+          if (response.statusCode != 200) {
+            controller.addError(
+              InternalServerException(
+                'SSE connection failed with status ${response.statusCode}',
+              ),
             );
-          });
+            controller.close();
+            return;
+          }
+          final body = response.data;
+          if (body == null) {
+            controller.close();
+            return;
+          }
+          SseParser.parse(body.stream).listen(
+            (data) => controller.add(data as T),
+            onError: controller.addError,
+            onDone: controller.close,
+          );
         })
         .catchError((Object e, StackTrace st) {
           controller.addError(e, st);
