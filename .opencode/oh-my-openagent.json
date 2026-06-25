@@ -33,19 +33,15 @@
       ]
     },
     "oracle": {
-      "model": "zenmux/z-ai/glm-5.2-free",
+      "model": "google/antigravity-claude-sonnet-4-6",
       "variant": "max",
       "fallback_models": [
         {
-          "model": "google/antigravity-claude-sonnet-4-6",
-          "variant": "max"
-        },
-        {
-          "model": "zenmux/moonshotai/kimi-k2.7-code-free",
+          "model": "opencode/deepseek-v4-flash-free",
           "variant": "high"
         },
         {
-          "model": "opencode/deepseek-v4-flash-free",
+          "model": "zenmux/moonshotai/kimi-k2.7-code-free",
           "variant": "high"
         },
         {
@@ -188,7 +184,7 @@
   },
   "categories": {
     "visual-engineering": {
-      "model": "zenmux/moonshotai/kimi-k2.7-code-free",
+      "model": "opencode/mimo-v2.5-free",
       "variant": "high",
       "fallback_models": [
         {
@@ -208,15 +204,11 @@
       ]
     },
     "ultrabrain": {
-      "model": "zenmux/z-ai/glm-5.2-free",
-      "variant": "xhigh",
+      "model": "google/gemini-3.1-pro-preview-customtools",
+      "variant": "high",
       "fallback_models": [
         {
           "model": "opencode/deepseek-v4-flash-free",
-          "variant": "high"
-        },
-        {
-          "model": "google/gemini-3.1-pro-preview-customtools",
           "variant": "high"
         },
         {
@@ -230,16 +222,12 @@
       ]
     },
     "deep": {
-      "model": "zenmux/moonshotai/kimi-k2.7-code-free",
-      "variant": "max",
+      "model": "google/antigravity-claude-sonnet-4-6",
+      "variant": "medium",
       "fallback_models": [
         {
           "model": "opencode/deepseek-v4-flash-free",
           "variant": "high"
-        },
-        {
-          "model": "google/antigravity-claude-sonnet-4-6",
-          "variant": "medium"
         },
         {
           "model": "google/gemini-3.1-pro-preview-customtools",
@@ -303,7 +291,7 @@
       ]
     },
     "unspecified-high": {
-      "model": "zenmux/z-ai/glm-5.2-free",
+      "model": "opencode/mimo-v2.5-free",
       "variant": "high",
       "fallback_models": [
         {
