@@ -5,6 +5,7 @@ import 'parser/descriptor_parser.dart';
 import 'generators/service_generator.dart';
 import 'generators/mock_service_generator.dart';
 import 'generators/example_test_generator.dart';
+import 'generators/runtime_inline_generator.dart';
 
 class CodeGenerator {
   final DescriptorParser _parser = DescriptorParser();
@@ -45,6 +46,13 @@ class CodeGenerator {
           );
         }
       }
+
+      // Emit unified_runtime.dart once per request
+      final runtimeFile = CodeGeneratorResponse_File(
+        name: 'unified_runtime.dart',
+        content: RuntimeInlineGenerator().generate(),
+      );
+      files.insert(0, runtimeFile); // insert first so it's easy to find in tests
 
       return CodeGeneratorResponse(
         file: files,
