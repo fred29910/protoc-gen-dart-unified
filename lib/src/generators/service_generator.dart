@@ -42,15 +42,7 @@ class ServiceGenerator {
 
   List<Directive> _buildDirectives() {
     final directives = <Directive>[
-      Directive.import(
-        'package:protoc_gen_dart_unified/src/runtime/transport.dart',
-      ),
-      Directive.import(
-        'package:protoc_gen_dart_unified/src/runtime/client_options.dart',
-      ),
-      Directive.import(
-        'package:protoc_gen_dart_unified/src/runtime/transport_factory.dart',
-      ),
+      Directive.import('unified_runtime.dart'),
       Directive.import(
         '../${service.protoFileName.replaceAll('.proto', '.pb.dart')}',
       ),
