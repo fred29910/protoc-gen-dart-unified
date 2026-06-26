@@ -2,7 +2,7 @@
 import 'unified_runtime.dart';
 import 'package:test/test.dart';
 import 'package:mockito/mockito.dart';
-import '../user.pb.dart';
+import 'user.pb.dart';
 import 'user_service_mock.dart';
 import 'user_service.dart';
 
@@ -23,6 +23,12 @@ void main() {
     test('createUser returns User', () async {
       // when(userService.createUser(any)).thenAnswer((_) async => User());
       // final result = await userService.createUser(request);
+      // expect(result, isA<User>());
+    });
+
+    test('listUsers returns User', () async {
+      // when(userService.listUsers(any)).thenAnswer((_) async => User());
+      // final result = await userService.listUsers(request);
       // expect(result, isA<User>());
     });
   });

@@ -193,7 +193,8 @@ void main() {
 
           File('${libDir.path}/user.pb.dart').writeAsStringSync('''
 class GetUserRequest { int get id => 0; }
-class CreateUserRequest { String get name => ""; String get email => ""; Object toProto3Json() => {}; }
+class CreateUserRequest { String get name => ""; String get email => ""; String get displayName => ""; Object toProto3Json() => {}; }
+class ListUsersRequest { int get pageSize => 0; String get pageToken => ""; Object toProto3Json() => {}; }
 class User {}
 ''');
 
@@ -253,27 +254,52 @@ FileDescriptorProto _buildUserProtoFile() {
             ..label = FieldDescriptorProto_Label.LABEL_OPTIONAL,
         ),
     )
-    ..messageType.add(
-      DescriptorProto()
-        ..name = 'CreateUserRequest'
-        ..field.add(
-          FieldDescriptorProto()
-            ..name = 'name'
-            ..number = 1
-            ..type = FieldDescriptorProto_Type.TYPE_STRING
-            ..label = FieldDescriptorProto_Label.LABEL_OPTIONAL,
-        )
-        ..field.add(
-          FieldDescriptorProto()
-            ..name = 'email'
-            ..number = 2
-            ..type = FieldDescriptorProto_Type.TYPE_STRING
-            ..label = FieldDescriptorProto_Label.LABEL_OPTIONAL,
-        ),
-    )
-    ..messageType.add(
-      DescriptorProto()
-        ..name = 'User'
+      ..messageType.add(
+        DescriptorProto()
+          ..name = 'CreateUserRequest'
+          ..field.add(
+            FieldDescriptorProto()
+              ..name = 'name'
+              ..number = 1
+              ..type = FieldDescriptorProto_Type.TYPE_STRING
+              ..label = FieldDescriptorProto_Label.LABEL_OPTIONAL,
+          )
+          ..field.add(
+            FieldDescriptorProto()
+              ..name = 'email'
+              ..number = 2
+              ..type = FieldDescriptorProto_Type.TYPE_STRING
+              ..label = FieldDescriptorProto_Label.LABEL_OPTIONAL,
+          )
+          ..field.add(
+            FieldDescriptorProto()
+              ..name = 'display_name'
+              ..number = 3
+              ..type = FieldDescriptorProto_Type.TYPE_STRING
+              ..label = FieldDescriptorProto_Label.LABEL_OPTIONAL,
+          ),
+      )
+      ..messageType.add(
+        DescriptorProto()
+          ..name = 'ListUsersRequest'
+          ..field.add(
+            FieldDescriptorProto()
+              ..name = 'page_size'
+              ..number = 1
+              ..type = FieldDescriptorProto_Type.TYPE_INT32
+              ..label = FieldDescriptorProto_Label.LABEL_OPTIONAL,
+          )
+          ..field.add(
+            FieldDescriptorProto()
+              ..name = 'page_token'
+              ..number = 2
+              ..type = FieldDescriptorProto_Type.TYPE_STRING
+              ..label = FieldDescriptorProto_Label.LABEL_OPTIONAL,
+          ),
+      )
+      ..messageType.add(
+        DescriptorProto()
+          ..name = 'User'
         ..field.add(
           FieldDescriptorProto()
             ..name = 'id'
@@ -296,24 +322,31 @@ FileDescriptorProto _buildUserProtoFile() {
             ..label = FieldDescriptorProto_Label.LABEL_OPTIONAL,
         ),
     )
-    ..service.add(
-      ServiceDescriptorProto()
-        ..name = 'UserService'
-        ..method.add(
-          MethodDescriptorProto()
-            ..name = 'GetUser'
-            ..inputType = '.user.v1.GetUserRequest'
-            ..outputType = '.user.v1.User'
-            ..options = _buildHttpOptions('get', '/v1/users/{id}'),
-        )
-        ..method.add(
-          MethodDescriptorProto()
-            ..name = 'CreateUser'
-            ..inputType = '.user.v1.CreateUserRequest'
-            ..outputType = '.user.v1.User'
-            ..options = _buildHttpOptions('post', '/v1/users', body: '*'),
-        ),
-    );
+      ..service.add(
+        ServiceDescriptorProto()
+          ..name = 'UserService'
+          ..method.add(
+            MethodDescriptorProto()
+              ..name = 'GetUser'
+              ..inputType = '.user.v1.GetUserRequest'
+              ..outputType = '.user.v1.User'
+              ..options = _buildHttpOptions('get', '/v1/users/{id}'),
+          )
+          ..method.add(
+            MethodDescriptorProto()
+              ..name = 'CreateUser'
+              ..inputType = '.user.v1.CreateUserRequest'
+              ..outputType = '.user.v1.User'
+              ..options = _buildHttpOptions('post', '/v1/users', body: '*'),
+          )
+          ..method.add(
+            MethodDescriptorProto()
+              ..name = 'ListUsers'
+              ..inputType = '.user.v1.ListUsersRequest'
+              ..outputType = '.user.v1.User'
+              ..options = _buildHttpOptions('get', '/v1/users'),
+          ),
+      );
 }
 
 MethodOptions _buildHttpOptions(

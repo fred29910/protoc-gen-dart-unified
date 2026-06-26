@@ -1,10 +1,11 @@
 // ignore_for_file: type=lint
 import 'unified_runtime.dart';
-import '../user.pb.dart';
+import 'user.pb.dart';
 
 abstract class UserService {
   Future<User> getUser(GetUserRequest request);
   Future<User> createUser(CreateUserRequest request);
+  Future<User> listUsers(ListUsersRequest request);
 }
 
 class UnifiedUserService implements UserService {
@@ -66,6 +67,46 @@ class UnifiedUserService implements UserService {
       return await _transport.unaryCall<User>(
         'UserService',
         'createUser',
+        request,
+        options: ctx.options,
+      );
+    }
+
+    if (_interceptors.isEmpty) {
+      return call(context);
+    }
+
+    // Build the interceptor chain
+    var chain = call;
+    for (var i = _interceptors.length - 1; i >= 0; i--) {
+      final interceptor = _interceptors[i];
+      final next = chain;
+      chain = (ctx) => interceptor.intercept(ctx, next);
+    }
+    return chain(context);
+  }
+
+  @override
+  Future<User> listUsers(ListUsersRequest request) async {
+    final context = InterceptorContext(
+      serviceName: 'UserService',
+      methodName: 'listUsers',
+      request: request,
+      options: RpcCallOptions(
+        httpMethod: 'get',
+        httpPath: '/v1/users',
+
+        httpQueryParams: {
+          'page_size': request.pageSize,
+          'page_token': request.pageToken,
+        },
+      ),
+    );
+
+    Future<User> call(InterceptorContext ctx) async {
+      return await _transport.unaryCall<User>(
+        'UserService',
+        'listUsers',
         request,
         options: ctx.options,
       );

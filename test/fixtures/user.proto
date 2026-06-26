@@ -10,6 +10,10 @@ service UserService {
   rpc CreateUser(CreateUserRequest) returns (User) {
     option (google.api.http) = { post: "/v1/users", body: "*" };
   }
+
+  rpc ListUsers(ListUsersRequest) returns (User) {
+    option (google.api.http) = { get: "/v1/users" };
+  }
 }
 
 message GetUserRequest {
@@ -19,6 +23,12 @@ message GetUserRequest {
 message CreateUserRequest {
   string name = 1;
   string email = 2;
+  string display_name = 3;
+}
+
+message ListUsersRequest {
+  int32 page_size = 1;
+  string page_token = 2;
 }
 
 message User {
