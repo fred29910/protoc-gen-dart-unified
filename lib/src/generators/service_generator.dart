@@ -44,7 +44,7 @@ class ServiceGenerator {
     final directives = <Directive>[
       Directive.import('unified_runtime.dart'),
       Directive.import(
-        '../${service.protoFileName.replaceAll('.proto', '.pb.dart')}',
+        service.protoFileName.replaceAll('.proto', '.pb.dart'),
       ),
     ];
     if (!_useHttp) {
@@ -264,7 +264,9 @@ class ServiceGenerator {
     for (var i = 0; i < pathMapping.literalSegments.length; i++) {
       pathInterpolation.write(pathMapping.literalSegments[i]);
       if (i < pathMapping.pathFieldNames.length) {
-        pathInterpolation.write('\${request.${pathMapping.pathFieldNames[i]}}');
+        pathInterpolation.write(
+          '\${request.${HttpMapper.toCamelCase(pathMapping.pathFieldNames[i])}}',
+        );
       }
     }
 
@@ -272,7 +274,8 @@ class ServiceGenerator {
     if (bodyMapping.kind == 'all') {
       bodyCode = 'httpBody: request.toProto3Json(),';
     } else if (bodyMapping.kind == 'field') {
-      bodyCode = 'httpBody: request.${bodyMapping.fieldName}.toProto3Json(),';
+      bodyCode =
+          'httpBody: request.${HttpMapper.toCamelCase(bodyMapping.fieldName!)}.toProto3Json(),';
     }
 
     String queryCode = '';
@@ -361,7 +364,9 @@ class ServiceGenerator {
     for (var i = 0; i < pathMapping.literalSegments.length; i++) {
       pathInterpolation.write(pathMapping.literalSegments[i]);
       if (i < pathMapping.pathFieldNames.length) {
-        pathInterpolation.write('\${request.${pathMapping.pathFieldNames[i]}}');
+        pathInterpolation.write(
+          '\${request.${HttpMapper.toCamelCase(pathMapping.pathFieldNames[i])}}',
+        );
       }
     }
 
