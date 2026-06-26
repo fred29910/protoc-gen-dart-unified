@@ -47,6 +47,24 @@ void main() {
     });
   });
 
+  group('HttpMapper.toCamelCase', () {
+    test('converts snake_case to camelCase', () {
+      expect(HttpMapper.toCamelCase('page_size'), equals('pageSize'));
+      expect(HttpMapper.toCamelCase('user_name'), equals('userName'));
+      expect(HttpMapper.toCamelCase('lottery_type_id'), equals('lotteryTypeId'));
+    });
+
+    test('leaves single word unchanged', () {
+      expect(HttpMapper.toCamelCase('page'), equals('page'));
+      expect(HttpMapper.toCamelCase('id'), equals('id'));
+      expect(HttpMapper.toCamelCase('name'), equals('name'));
+    });
+
+    test('leaves empty string unchanged', () {
+      expect(HttpMapper.toCamelCase(''), equals(''));
+    });
+  });
+
   group('HttpMapper.flattenQuery', () {
     test('returns non-path fields as query params', () {
       final fields = [
@@ -58,6 +76,17 @@ void main() {
       expect(result, hasLength(2));
       expect(result[0].name, equals('page'));
       expect(result[1].name, equals('limit'));
+    });
+
+    test('dartAccessor uses camelCase for snake_case field names', () {
+      final fields = [
+        FieldModel(name: 'page_size', type: 'int32'),
+        FieldModel(name: 'page_token', type: 'string'),
+      ];
+      final result = HttpMapper.flattenQuery(fields, {}, '');
+      expect(result, hasLength(2));
+      expect(result[0].dartAccessor, equals('pageSize'));
+      expect(result[1].dartAccessor, equals('pageToken'));
     });
 
     test('excludes body field from query params', () {

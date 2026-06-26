@@ -6,6 +6,24 @@ import 'body_mapping.dart';
 /// HTTP mapping engine that translates HttpRule path templates, query
 /// parameters, and body mappings into Dart code generation inputs.
 class HttpMapper {
+  /// Converts a proto snake_case field name to a Dart camelCase property name.
+  ///
+  /// Examples:
+  /// - `page_size` → `pageSize`
+  /// - `user_name` → `userName`
+  /// - `id` → `id`
+  static String toCamelCase(String name) {
+    final parts = name.split('_');
+    if (parts.isEmpty) return name;
+    final buffer = StringBuffer(parts[0]);
+    for (var i = 1; i < parts.length; i++) {
+      if (parts[i].isNotEmpty) {
+        buffer.write(parts[i][0].toUpperCase());
+        buffer.write(parts[i].substring(1));
+      }
+    }
+    return buffer.toString();
+  }
   /// Parses an HTTP path template into literal segments and field names.
   ///
   /// Supports `{field}` and `{field=segments/*}` patterns.
@@ -85,7 +103,10 @@ class HttpMapper {
     for (final field in fields) {
       if (pathFields.contains(field.name)) continue;
       if (bodyField.isNotEmpty && field.name == bodyField) continue;
-      queryFields.add(QueryField(name: field.name, dartAccessor: field.name));
+      queryFields.add(QueryField(
+        name: field.name,
+        dartAccessor: toCamelCase(field.name),
+      ));
     }
     return queryFields;
   }
