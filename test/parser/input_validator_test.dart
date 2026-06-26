@@ -71,5 +71,52 @@ void main() {
       );
       expect(warning.severity, equals(ValidationSeverity.warning));
     });
+
+    test('detects empty service name', () {
+      final files = [
+        FileDescriptorProto()
+          ..name = 'anon.proto'
+          ..service.add(ServiceDescriptorProto()
+            ..name = ''
+            ..method.add(MethodDescriptorProto()..name = 'DoSomething')),
+      ];
+      final errors = validator.validate(files);
+      expect(errors, isNotEmpty);
+      expect(errors.any((e) => e.message.contains('empty') || e.message.contains('unnamed')), isTrue);
+    });
+
+    test('detects duplicate method names in same service', () {
+      final files = [
+        FileDescriptorProto()
+          ..name = 'dup.proto'
+          ..service.add(ServiceDescriptorProto()
+            ..name = 'DupService'
+            ..method.addAll([
+              MethodDescriptorProto()..name = 'GetUser',
+              MethodDescriptorProto()..name = 'GetUser',
+            ])),
+      ];
+      final errors = validator.validate(files);
+      expect(errors, hasLength(1));
+      expect(errors.first.message, contains('Duplicate'));
+    });
+
+    test('detects duplicate method names across different services', () {
+      final files = [
+        FileDescriptorProto()
+          ..name = 'multi.proto'
+          ..service.addAll([
+            ServiceDescriptorProto()
+              ..name = 'UserService'
+              ..method.add(MethodDescriptorProto()..name = 'GetUser'),
+            ServiceDescriptorProto()
+              ..name = 'AdminService'
+              ..method.add(MethodDescriptorProto()..name = 'GetUser'),
+          ]),
+      ];
+      final errors = validator.validate(files);
+      // Same method name in different services is valid
+      expect(errors, isEmpty);
+    });
   });
 }

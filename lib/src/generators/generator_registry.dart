@@ -12,6 +12,10 @@ class GeneratorEntry {
   /// Whether this generator runs per-service or once globally.
   final GeneratorScope scope;
 
+  /// Whether this entry is enabled. Disabled entries are skipped during
+  /// generation but remain in the registry.
+  bool enabled;
+
   /// Generates file content for a service (only called when scope=perService).
   final String Function(ServiceModel service)? serviceGenerator;
 
@@ -22,12 +26,13 @@ class GeneratorEntry {
   /// For global generators, [serviceName] should be empty.
   final String Function(String serviceName) fileNameFn;
 
-  const GeneratorEntry({
+  GeneratorEntry({
     required this.name,
     required this.scope,
     this.serviceGenerator,
     this.globalGenerator,
     required this.fileNameFn,
+    this.enabled = true,
   });
 }
 
@@ -49,6 +54,22 @@ class GeneratorRegistry {
     _entries.add(entry);
   }
 
+  /// Finds an entry by [name] and sets its [enabled] state.
+  /// Returns true if an entry was found and updated.
+  bool setEnabled(String name, bool enabled) {
+    for (final entry in _entries) {
+      if (entry.name == name) {
+        entry.enabled = enabled;
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /// Returns entries filtered by the current enabled state.
+  List<GeneratorEntry> enabledEntries() =>
+      _entries.where((e) => e.enabled).toList();
+
   /// Returns all registered entries.
   List<GeneratorEntry> get entries => List.unmodifiable(_entries);
 
@@ -61,7 +82,7 @@ class GeneratorRegistry {
   ) {
     final results = <(String, String)>[];
     for (final entry in _entries) {
-      if (entry.scope == GeneratorScope.perService && entry.serviceGenerator != null) {
+      if (entry.enabled && entry.scope == GeneratorScope.perService && entry.serviceGenerator != null) {
         results.add((
           entry.fileNameFn(dartServiceName),
           entry.serviceGenerator!(service),
@@ -75,7 +96,7 @@ class GeneratorRegistry {
   List<(String, String)> generateGlobal() {
     final results = <(String, String)>[];
     for (final entry in _entries) {
-      if (entry.scope == GeneratorScope.global && entry.globalGenerator != null) {
+      if (entry.enabled && entry.scope == GeneratorScope.global && entry.globalGenerator != null) {
         results.add((
           entry.fileNameFn(''),
           entry.globalGenerator!(),

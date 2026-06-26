@@ -25,6 +25,8 @@ class ValidationError {
 /// - At least one proto file must be provided
 /// - Each file must define at least one service
 /// - Each service must define at least one method
+/// - Service name must not be empty
+/// - Method names must not conflict within the same service
 ///
 /// Only validates — does not modify or repair.
 class InputValidator {
@@ -55,6 +57,17 @@ class InputValidator {
       }
 
       for (final service in file.service) {
+        // Service name must not be empty
+        if (service.name.isEmpty) {
+          errors.add(
+            ValidationError(
+              file: file.name,
+              message:
+                  'Service in file "${file.name}" has an empty name',
+            ),
+          );
+        }
+
         if (service.method.isEmpty) {
           errors.add(
             ValidationError(
@@ -63,6 +76,21 @@ class InputValidator {
                   'Service "${service.name}" in "${file.name}" defines no methods',
             ),
           );
+        }
+
+        // Method name conflict detection within a service
+        final methodNames = <String>{};
+        for (final method in service.method) {
+          if (method.name.isNotEmpty && !methodNames.add(method.name)) {
+            errors.add(
+        ValidationError(
+                file: file.name,
+                message:
+                    'Duplicate method name "${method.name}" in service '
+                    '"${service.name}" (${file.name})',
+              ),
+            );
+          }
         }
       }
     }

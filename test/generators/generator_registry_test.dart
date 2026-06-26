@@ -101,5 +101,51 @@ void main() {
         ),
       ), throwsUnsupportedError);
     });
+
+    test('setEnabled disables an entry by name', () {
+      final registry = GeneratorRegistry.defaultRegistry(mockEnabled: true);
+      expect(registry.enabledEntries(), hasLength(4));
+
+      final found = registry.setEnabled('Mock', false);
+      expect(found, isTrue);
+
+      final results = registry.generateForService(testService, 'test_service');
+      final fileNames = results.map((r) => r.$1).toList();
+      expect(fileNames, contains('test_service.dart'));
+      expect(fileNames, isNot(contains('test_service_mock.dart')));
+    });
+
+    test('setEnabled enables a previously disabled entry', () {
+      final registry = GeneratorRegistry();
+      registry.register(GeneratorEntry(
+        name: 'Togglable',
+        scope: GeneratorScope.global,
+        globalGenerator: () => 'on-demand content',
+        fileNameFn: (_) => 'togglable.txt',
+        enabled: false,
+      ));
+
+      expect(registry.generateGlobal(), isEmpty);
+
+      registry.setEnabled('Togglable', true);
+      final results = registry.generateGlobal();
+      expect(results, hasLength(1));
+      expect(results.first.$1, equals('togglable.txt'));
+    });
+
+    test('setEnabled returns false for unknown name', () {
+      final registry = GeneratorRegistry();
+      final found = registry.setEnabled('NonExistent', false);
+      expect(found, isFalse);
+    });
+
+    test('enabledEntries returns only enabled entries', () {
+      final registry = GeneratorRegistry.defaultRegistry(mockEnabled: true);
+      expect(registry.enabledEntries(), hasLength(4));
+
+      registry.setEnabled('Mock', false);
+      registry.setEnabled('ExampleTest', false);
+      expect(registry.enabledEntries(), hasLength(2));
+    });
   });
 }
