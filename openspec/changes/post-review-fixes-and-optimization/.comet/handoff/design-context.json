@@ -1,0 +1,19 @@
+{
+  "change": "post-review-fixes-and-optimization",
+  "phase": "design",
+  "mode": "compact",
+  "canonical_spec": "openspec",
+  "generated_by": "comet-handoff.sh",
+  "context_hash": "dbf60a928c0283d739ea32fef412258011b9444a3087cddc1e8e1043efca3d3c",
+  "files": [
+    { "path": "openspec/changes/post-review-fixes-and-optimization/proposal.md", "sha256": "7df6df861c8fffe34ce26fb3838fcacfe21bb12f2eacdf58e5104355e1fb06df" },
+    { "path": "openspec/changes/post-review-fixes-and-optimization/design.md", "sha256": "65dc45284f42b45da0eb18796707990bd89ffda67fec28ac1ed173325ca4bac6" },
+    { "path": "openspec/changes/post-review-fixes-and-optimization/tasks.md", "sha256": "a118e025377e66a871bdf6427cd903b6d1b7ee2f611701e3e1838a17cd22cbee" },
+    { "path": "openspec/changes/post-review-fixes-and-optimization/specs/code-generation-pipeline/spec.md", "sha256": "8eb4b90d1f8e8eac75b3797526624ea85bebeda131ecd32d6fc6ffb51389c901" },
+    { "path": "openspec/changes/post-review-fixes-and-optimization/specs/enum-type-mapping/spec.md", "sha256": "6bc5b1741f68a91787771e17e946580ef35587d2605f57d243f0f54466552eaa" },
+    { "path": "openspec/changes/post-review-fixes-and-optimization/specs/input-validation/spec.md", "sha256": "ffac240b94c852bcafacf4b0edf32eeedb096306956007196e9d33a171247660" },
+    { "path": "openspec/changes/post-review-fixes-and-optimization/specs/map-type-detection/spec.md", "sha256": "abaca63c036dd94a78a0405c72eac23378c8f83443bea7db8a56464a9c2af802" },
+    { "path": "openspec/changes/post-review-fixes-and-optimization/specs/oneof-field-support/spec.md", "sha256": "270fa3cfeccf01049e3bb97f99fcc362be8a463ad7772ced14ddbd4a6ca2fe91" },
+    { "path": "openspec/changes/post-review-fixes-and-optimization/specs/type-safe-grpc-client/spec.md", "sha256": "63ed9b0cc662ba720bc69083717aff45bab72be10fb8eb9a28d7f6457c2bc899" }
+  ]
+}
