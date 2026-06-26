@@ -3,6 +3,7 @@ import 'package:fixnum/fixnum.dart';
 // ignore: implementation_imports
 import 'package:protoc_plugin/src/gen/google/protobuf/compiler/plugin.pb.dart';
 import 'parser/descriptor_parser.dart';
+import 'parser/input_validator.dart';
 import 'generators/service_generator.dart';
 import 'generators/mock_service_generator.dart';
 import 'generators/example_test_generator.dart';
@@ -10,9 +11,23 @@ import 'generators/runtime_inline_generator.dart';
 
 class CodeGenerator {
   final DescriptorParser _parser = DescriptorParser();
+  final InputValidator _validator = InputValidator();
 
   CodeGeneratorResponse generate(CodeGeneratorRequest request) {
     try {
+      // Only validate when there are files to generate
+      // (empty fileToGenerate is a supported-features probe)
+      final filesToGenerate = request.protoFile
+          .where((f) => request.fileToGenerate.contains(f.name))
+          .toList();
+      if (filesToGenerate.isNotEmpty) {
+        final errors = _validator.validate(filesToGenerate);
+        if (errors.isNotEmpty) {
+          final errorMsg = errors.map((e) => e.toString()).join('\n');
+          return CodeGeneratorResponse(error: errorMsg);
+        }
+      }
+
       final services = _parser.parse(request.protoFile);
       final files = <CodeGeneratorResponse_File>[];
       final mockEnabled = _parseMockParam(request.parameter);
