@@ -32,7 +32,7 @@ class AuthInterceptor implements RpcInterceptor {
       updatedHeaders[_headerKey] = token.startsWith('Bearer ')
           ? token
           : 'Bearer $token';
-      final baseOptions = context.options ?? RpcCallOptions();
+      final baseOptions = context.options ?? const RpcCallOptions();
       final updatedOptions = baseOptions.copyWith(headers: updatedHeaders);
       final updatedContext = context.copyWith(options: updatedOptions);
       return proceed(updatedContext);

@@ -1,3 +1,5 @@
+// ignore_for_file: prefer_const_constructors
+
 import 'package:test/test.dart';
 import 'package:protoc_gen_dart_unified/src/runtime/with_retry.dart';
 import 'package:protoc_gen_dart_unified/src/runtime/retry_policy.dart';

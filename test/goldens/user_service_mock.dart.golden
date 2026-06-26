@@ -1,4 +1,5 @@
 // ignore_for_file: type=lint
+import 'unified_runtime.dart';
 import 'package:mockito/annotations.dart';
 import '../user.pb.dart';
 import 'user_service.dart';

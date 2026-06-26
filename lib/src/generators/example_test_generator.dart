@@ -55,7 +55,7 @@ class ExampleTestGenerator {
             ..statements.add(Code('group(\'${service.name}\', () {'))
             ..statements.add(Code('late $mockClassName $fieldName;'))
             ..statements.add(const Code(''))
-            ..statements.add(Code('setUp(() {'))
+            ..statements.add(const Code('setUp(() {'))
             ..statements.add(Code('$fieldName = $mockClassName();'))
             ..statements.add(const Code('});'))
             ..statements.add(const Code(''))

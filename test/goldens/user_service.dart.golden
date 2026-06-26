@@ -1,7 +1,5 @@
 // ignore_for_file: type=lint
-import 'package:protoc_gen_dart_unified/src/runtime/transport.dart';
-import 'package:protoc_gen_dart_unified/src/runtime/client_options.dart';
-import 'package:protoc_gen_dart_unified/src/runtime/transport_factory.dart';
+import 'unified_runtime.dart';
 import '../user.pb.dart';
 
 abstract class UserService {

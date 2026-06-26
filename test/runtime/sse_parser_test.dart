@@ -42,7 +42,7 @@ void main() {
     });
 
     test('handles chunked input', () async {
-      final fullData = 'data: part1\n\ndata: part2\n\n';
+      const fullData = 'data: part1\n\ndata: part2\n\n';
       final bytes = utf8.encode(fullData);
       // Split into small chunks
       final chunks = <List<int>>[];

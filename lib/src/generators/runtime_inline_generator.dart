@@ -3,7 +3,7 @@
 ///
 /// This template-based generator copies class definitions verbatim from
 /// `lib/src/runtime/` sources, with only `package:dio/dio.dart` as an
-/// external dependency. GrpcTransport and http_status_mapping are excluded
+/// external dependency. gRPC-only types and http_status_mapping are excluded
 /// (dead / gRPC-only code).
 class RuntimeInlineGenerator {
   /// Returns the complete source code for `unified_runtime.dart`.

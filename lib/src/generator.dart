@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:fixnum/fixnum.dart';
+// ignore: implementation_imports
 import 'package:protoc_plugin/src/gen/google/protobuf/compiler/plugin.pb.dart';
 import 'parser/descriptor_parser.dart';
 import 'generators/service_generator.dart';

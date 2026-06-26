@@ -1,4 +1,5 @@
 import 'package:protobuf/protobuf.dart';
+// ignore: implementation_imports
 import 'package:protoc_plugin/src/gen/google/protobuf/descriptor.pb.dart';
 import 'extension_registry.dart';
 import 'google/api/annotations.pb.dart';

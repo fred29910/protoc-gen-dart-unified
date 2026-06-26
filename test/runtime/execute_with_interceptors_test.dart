@@ -1,6 +1,5 @@
 import 'package:test/test.dart';
 import 'package:protoc_gen_dart_unified/src/runtime/transport.dart';
-import 'package:protoc_gen_dart_unified/src/runtime/rpc_interceptor.dart';
 
 void main() {
   group('executeWithInterceptors', () {

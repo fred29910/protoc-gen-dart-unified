@@ -79,7 +79,7 @@ void main() {
     });
 
     test('RpcCancelledException contains reason', () {
-      final exception = RpcCancelledException('timeout');
+      const exception = RpcCancelledException('timeout');
       expect(exception.reason, equals('timeout'));
       expect(exception.toString(), contains('timeout'));
     });

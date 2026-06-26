@@ -33,6 +33,6 @@ class RetryInterceptor implements RpcInterceptor {
       }
     }
     // Should not reach here, but just in case
-    throw lastError ?? InternalServerException('Retry exhausted');
+    throw lastError ?? const InternalServerException('Retry exhausted');
   }
 }

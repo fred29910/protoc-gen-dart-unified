@@ -1,8 +1,11 @@
+// ignore_for_file: avoid_print, implementation_imports
+
 import 'dart:io';
 import 'package:test/test.dart';
 import 'package:protoc_plugin/src/gen/google/protobuf/descriptor.pb.dart';
 import 'package:protoc_plugin/src/gen/google/protobuf/compiler/plugin.pb.dart';
 import 'package:protoc_gen_dart_unified/src/generator.dart';
+import 'package:protoc_gen_dart_unified/src/generators/runtime_inline_generator.dart';
 import 'package:protoc_gen_dart_unified/src/format_formatter.dart';
 import 'package:protoc_gen_dart_unified/src/parser/google/api/annotations.pb.dart';
 import 'package:protoc_gen_dart_unified/src/parser/google/api/http.pb.dart'
@@ -24,7 +27,7 @@ void main() {
     });
 
     test('DartFormatter idempotent on generated source', () {
-      final source = 'class Foo{int x;}';
+      const source = 'class Foo{int x;}';
       final formatted1 = formatDartSource(source);
       final formatted2 = formatDartSource(formatted1);
       expect(formatted2, equals(formatted1));
@@ -34,7 +37,9 @@ void main() {
       final request = CodeGeneratorRequest();
       final generator = CodeGenerator();
       final response = generator.generate(request);
-      expect(response.file, isEmpty);
+      // unified_runtime.dart is always emitted
+      expect(response.file, hasLength(1));
+      expect(response.file[0].name, equals('unified_runtime.dart'));
       expect(response.error, isEmpty);
     });
 
@@ -48,8 +53,8 @@ void main() {
       );
 
       expect(response.error, isEmpty);
-      // Default mock=true generates 3 files: service + mock + example_test
-      expect(response.file, hasLength(3));
+      // Default mock=true generates 4 files: unified_runtime + service + mock + example_test
+      expect(response.file, hasLength(4));
 
       // Verify service file
       final serviceFile = response.file.firstWhere(
@@ -163,8 +168,9 @@ void main() {
       );
 
       expect(response.error, isEmpty);
-      expect(response.file, hasLength(1));
-      expect(response.file.first.name, equals('user_service.dart'));
+      expect(response.file, hasLength(2));
+      expect(response.file[0].name, equals('unified_runtime.dart'));
+      expect(response.file[1].name, equals('user_service.dart'));
     });
 
     test(
@@ -178,6 +184,12 @@ void main() {
         try {
           final libDir = Directory('${tempDir.path}/lib')..createSync();
           File('${libDir.path}/user_service.dart').writeAsStringSync(content);
+
+          // Write the unified_runtime.dart so imports resolve
+          final runtimeContent = RuntimeInlineGenerator().generate();
+          File('${libDir.path}/unified_runtime.dart').writeAsStringSync(
+            runtimeContent,
+          );
 
           File('${libDir.path}/user.pb.dart').writeAsStringSync('''
 class GetUserRequest { int get id => 0; }

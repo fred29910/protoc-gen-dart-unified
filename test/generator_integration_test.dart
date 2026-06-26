@@ -32,8 +32,8 @@ void main() {
       );
 
       expect(response.error, isEmpty);
-      // Default mock=true generates 3 files: service + mock + example_test
-      expect(response.file, hasLength(3));
+      // Default mock=true generates 4 files: unified_runtime + service + mock + example_test
+      expect(response.file, hasLength(4));
 
       final content = response.file
           .firstWhere((f) => f.name == 'user_service.dart')
@@ -138,8 +138,9 @@ void main() {
       );
 
       expect(response.error, isEmpty);
-      expect(response.file, hasLength(1));
-      expect(response.file.first.name, equals('user_service.dart'));
+      expect(response.file, hasLength(2));
+      expect(response.file[0].name, equals('unified_runtime.dart'));
+      expect(response.file[1].name, equals('user_service.dart'));
     });
 
     test('declares FEATURE_PROTO3_OPTIONAL in supportedFeatures', () {

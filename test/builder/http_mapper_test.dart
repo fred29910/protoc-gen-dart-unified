@@ -1,3 +1,5 @@
+// ignore_for_file: prefer_const_constructors
+
 import 'package:test/test.dart';
 import 'package:protoc_gen_dart_unified/src/builder/http_mapper.dart';
 import 'package:protoc_gen_dart_unified/src/model/field_model.dart';

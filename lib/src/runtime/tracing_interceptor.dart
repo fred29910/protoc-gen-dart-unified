@@ -33,7 +33,7 @@ class TracingInterceptor implements RpcInterceptor {
     final existingHeaders = context.options?.headers ?? {};
     final updatedHeaders = Map<String, String>.from(existingHeaders);
     updatedHeaders['traceparent'] = traceparent;
-    final baseOptions = context.options ?? RpcCallOptions();
+    final baseOptions = context.options ?? const RpcCallOptions();
     final updatedOptions = baseOptions.copyWith(headers: updatedHeaders);
     final updatedContext = context.copyWith(options: updatedOptions);
     return proceed(updatedContext);
