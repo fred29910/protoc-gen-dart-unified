@@ -2,7 +2,6 @@ import 'package:test/test.dart';
 import 'package:protoc_gen_dart_unified/src/generators/generator_registry.dart';
 import 'package:protoc_gen_dart_unified/src/model/service_model.dart';
 import 'package:protoc_gen_dart_unified/src/model/method_model.dart';
-import 'package:protoc_gen_dart_unified/src/model/message_model.dart';
 
 void main() {
   group('GeneratorRegistry', () {

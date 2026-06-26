@@ -1,8 +1,6 @@
 import 'package:test/test.dart';
 import 'package:protoc_plugin/src/gen/google/protobuf/descriptor.pb.dart';
 import 'package:protoc_gen_dart_unified/src/parser/descriptor_parser.dart';
-import 'package:protoc_gen_dart_unified/src/model/enum_model.dart';
-import 'package:protoc_gen_dart_unified/src/model/field_model.dart';
 
 void main() {
   group('DescriptorParser oneof extraction', () {
