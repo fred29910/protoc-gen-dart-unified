@@ -1,7 +1,7 @@
 # AGENTS.md
 
-**Generated:** 2026-06-25
-**Commit:** `db57123`
+**Generated:** 2026-06-26
+**Commit:** `51fe1b7`
 **Branch:** `main`
 
 This file provides guidance to OpenCode when working with code in this repository.
@@ -16,6 +16,7 @@ This file provides guidance to OpenCode when working with code in this repositor
 |------|----------|-------|
 | Plugin entry | `bin/protoc_gen_dart_unified.dart` | Reads stdin, writes stdout |
 | Code generation | `lib/src/generators/service_generator.dart` | 500 LOC, generates interface + impl + SDK |
+| Inline runtime generation | `lib/src/generators/runtime_inline_generator.dart` | 837 LOC template, emits self-contained `unified_runtime.dart` |
 | Mock generation | `lib/src/generators/mock_service_generator.dart` | Mock client for testing |
 | Example test scaffold | `lib/src/generators/example_test_generator.dart` | Example test generator |
 | Proto parsing | `lib/src/parser/descriptor_parser.dart` | FileDescriptorProto → ServiceModel |
@@ -102,6 +103,7 @@ lib/
     ├── builder/                          # HTTP mapping logic: path resolution, body mapping, query flattening
     ├── generators/
     │   ├── service_generator.dart        # Main generator: abstract interface + Unified impl + ApiSdk
+    │   ├── runtime_inline_generator.dart # Inline runtime generation, emits unified_runtime.dart
     │   ├── mock_service_generator.dart   # Mock client generator
     │   └── example_test_generator.dart   # Example test scaffold generator
     └── runtime/                          # Runtime transport layer: Transport, ClientOptions, RpcInterceptor, etc.
@@ -113,11 +115,13 @@ bin/
 
 1. `bin/protoc_gen_dart_unified.dart` reads `CodeGeneratorRequest` from stdin
 2. `DescriptorParser` parses proto descriptors, extracting services, methods, and `google.api.http` annotations via `ExtensionRegistry`
-3. For each service, `ServiceGenerator` uses `code_builder` to construct Dart AST:
+3. `RuntimeInlineGenerator` emits `unified_runtime.dart` — a self-contained runtime with transport, interceptors, SSE, auth, retry (only dep: `dio`)
+4. For each service, `ServiceGenerator` generates:
    - Abstract service interface
-   - `Unified<ServiceImpl>` with interceptor chain
+   - `Unified<ServiceImpl>` implementation with interceptor chain
    - `ApiSdk` entry class
-4. Output is formatted with `DartFormatter` and written to `CodeGeneratorResponse`
+5. Optionally: `MockServiceGenerator` + `ExampleTestGenerator` produce `*_mock.dart` and `*_example_test.dart`
+6. All outputs are formatted with `DartFormatter` and written to `CodeGeneratorResponse`
 
 ### Transport Selection Logic
 

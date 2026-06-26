@@ -1,6 +1,6 @@
 # Runtime Transport Layer
 
-**Generated:** 2026-06-25
+**Generated:** 2026-06-26
 **Parent:** `AGENTS.md` (root)
 
 ## OVERVIEW
@@ -28,7 +28,7 @@ runtime/
 | Concept | File | Notes |
 |---------|------|-------|
 | Transport abstraction | `transport.dart` | unaryCall + serverStream + executeWithInterceptors |
-| Native HTTP client | `transport_native.dart` | Dio-based, 296 lines |
+| Native HTTP client | `transport_native.dart` | Dio-based, 290 lines, SSE via dio ResponseType.stream |
 | Web HTTP client | `transport_web.dart` | http package, conditional import |
 | Interceptor chain building | `client_options.dart` | tracing → user → retry order |
 | SSE parsing | `sse_parser.dart` | Server-Sent Events protocol |

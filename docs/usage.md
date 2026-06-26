@@ -1,6 +1,6 @@
 # protoc-gen-dart-unified 使用说明
 
-> 版本：0.1.0 | Dart SDK >=3.10.0 <4.0.0
+> 版本：0.2.0 | Dart SDK >=3.10.0 <4.0.0
 
 ---
 
@@ -45,13 +45,17 @@
     ▼
 protoc-gen-dart-unified (protoc 插件)
     │
-    ├── parser/        # 解析 FileDescriptorProto，读取 google.api.http 注解
-    ├── model/         # 内部模型：ServiceModel, MethodModel, HttpRuleModel
-    ├── builder/       # HTTP 映射逻辑：路径解析、Body 映射、Query 展平
-    └── generators/    # 代码生成器：ServiceGenerator, MockServiceGenerator, ExampleTestGenerator
+    ├── parser/              # 解析 FileDescriptorProto，读取 google.api.http 注解
+    ├── model/               # 内部模型：ServiceModel, MethodModel, HttpRuleModel
+    ├── builder/             # HTTP 映射逻辑：路径解析、Body 映射、Query 展平
+    └── generators/
+        ├── service_generator.dart        # 主 service 代码生成
+        ├── runtime_inline_generator.dart # 自包含运行时生成（unified_runtime.dart）
+        ├── mock_service_generator.dart   # Mock 客户端生成
+        └── example_test_generator.dart   # 测试脚手架生成
     │
     ▼
-Generated SDK (单个 .dart 文件 / Service)
+Generated SDK (unified_runtime.dart + 每个 service 的 .dart 文件)
     │
     ▼
 用户代码: await sdk.userService.getUser(GetUserRequest(id: 1))
@@ -168,9 +172,12 @@ protoc \
 
 | 文件 | 说明 |
 | --- | --- |
+| `unified_runtime.dart` | 自包含运行时（Transport、拦截器、SSE、Auth、Retry），仅依赖 `dio` |
 | `user_service.dart` | 主文件：抽象接口 + Unified 实现 + ApiSdk 入口 |
-| `user_service_mock.dart` | Mock 客户端（用于测试） |
+| `user_service_mock.dart` | Mock 客户端（基于 Mockito，无需 build_runner） |
 | `user_service_example_test.dart` | 示例测试文件（基于 mockito） |
+
+`unified_runtime.dart` 由插件自动生成，**无需额外运行时包依赖**（详见第 3.3 节）。
 
 输出目录下还需有 `protoc-gen-dart` 生成的 `user.pb.dart`（消息模型）供导入：
 
@@ -195,21 +202,22 @@ protoc \
 
 **第 1 步：添加依赖**
 
-在 `pubspec.yaml` 中添加运行时依赖：
+生成的 SDK 代码包含自运行时（`unified_runtime.dart`），因此**不需要**将 `protoc_gen_dart_unified` 作为运行时依赖。只需添加 protobuf 和传输层依赖：
 
 ```yaml
 dependencies:
-  protoc_gen_dart_unified:
-    path: /path/to/protoc-gen-dart-unified  # 或从 pub.dev 安装
   protobuf: ^6.0.0
-  dio: ^5.9.0
-  grpc: ^5.1.0  # 仅 Native 平台需要
+  dio: ^5.9.0          # HTTP 传输（必须）
+  grpc: ^5.1.0          # 仅 gRPC 传输需要
 ```
+
+生成的代码通过 `unified_runtime.dart` 本地导入使用，无需包引用。
 
 **第 2 步：使用 SDK**
 
+生成的 `unified_runtime.dart` 位于输出目录中，与生成的 service 文件同级：
+
 ```dart
-import 'package:protoc_gen_dart_unified/src/runtime/client_options.dart';
 import 'generated/user_service.dart';
 
 void main() async {
@@ -235,7 +243,7 @@ void main() async {
 
 **第 3 步：使用 gRPC 传输（Native）**
 
-当需要 gRPC 传输时，传入由 `protoc-gen-dart` 生成的 `*ServiceClient`：
+当需要 gRPC 传输时，通过 `extraInterceptors`（而非 `grpcClient`，详见下节）和 `Protocol.grpc` 配置：
 
 ```dart
 import 'package:grpc/grpc.dart';
@@ -253,9 +261,11 @@ final sdk = ApiSdk(
     endpoint: 'https://api.example.com',
     protocol: Protocol.grpc,
   ),
-  grpcClient: grpc.UserServiceClient(channel),
+  extraInterceptors: const [],
 );
 ```
+
+> **注意：** `ApiSdk` 使用 `extraInterceptors` 参数传递额外拦截器（默认空列表）。当前版本 `grpcClient` 仅在 service 无 `google.api.http` 注解时作为构造参数传入。
 
 ---
 
@@ -278,7 +288,7 @@ final sdk = ApiSdk(
 protoc --dart-unified_out=. --dart-unified_opt=mock=false user.proto
 ```
 
-> **注意：** 当前版本支持的参数较少，后续版本会增加 `single_file`、`protocol`、`transport`、`tracing`、`retry` 等配置项。
+> **注意：** 当前仅支持 `mock` 参数。运行时行为（如 tracing、retry）通过 `ClientOptions` 配置。
 
 ---
 
@@ -357,35 +367,32 @@ class ApiSdk {
 }
 ```
 
-- 每个 service 作为一个公开字段
-- 拦截器链在构造函数中构建
-- Transport 通过 conditional import 工厂创建（编译期决定 Web/Native）
+- 每个 service 作为一个 `late` 公开字段
+- 拦截器链在构造函数中通过 `buildInterceptorChain()` + `extraInterceptors` 合并构建
+- Transport 通过 `createTransport()` 工厂创建（编译期决定 Web/Native）
 
 ### 5.2 Mock 文件（`user_service_mock.dart`）
 
 ```dart
-import 'package:mockito/annotations.dart';
-import '../user.pb.dart';
+// ignore_for_file: type=lint
+import 'package:mockito/mockito.dart';
+import 'user.pb.dart';
 import 'user_service.dart';
 
-@GenerateNiceMocks([MockMockUserService])
-class MockUserService implements UserService {
-  @override
-  Future<User> getUser(GetUserRequest request) => throw UnimplementedError();
-  @override
-  Future<User> createUser(CreateUserRequest request) => throw UnimplementedError();
-}
+class MockUserService extends Mock implements UserService {}
 ```
 
-- 注解驱动 Mockito 生成
-- 配合 `build_runner` 使用：`dart run build_runner build`
+- 直接继承 `Mock` 并 `implements` 抽象接口，无需注解或 `build_runner`
+- 配合 `mockito` 使用：`when(mock.getUser(any)).thenAnswer(...)`
 
 ### 5.3 示例测试文件（`user_service_example_test.dart`）
 
 ```dart
+// ignore_for_file: type=lint
+import 'unified_runtime.dart';
 import 'package:test/test.dart';
 import 'package:mockito/mockito.dart';
-import '../user.pb.dart';
+import 'user.pb.dart';
 import 'user_service_mock.dart';
 import 'user_service.dart';
 
@@ -406,8 +413,7 @@ void main() {
 }
 ```
 
-- 带注释的测试模板，填充后即可运行
-- 使用 Mockito 框架
+- 使用 Mockito 框架，无需 `build_runner`
 
 ---
 
@@ -415,20 +421,24 @@ void main() {
 
 ### 6.1 ClientOptions 配置
 
+`ClientOptions` 定义在生成的 `unified_runtime.dart` 中，通过 `ApiSdk` 传入：
+
 ```dart
-final options = ClientOptions(
-  endpoint: 'https://api.example.com',
-  protocol: Protocol.auto,   // auto | http | grpc
-  timeout: const Duration(seconds: 30),
-  interceptors: [
-    // 自定义拦截器
-  ],
-  retryPolicy: RetryPolicy(
-    maxAttempts: 5,
-    initialDelay: Duration(milliseconds: 100),
+final sdk = ApiSdk(
+  options: ClientOptions(
+    endpoint: 'https://api.example.com',
+    protocol: Protocol.auto,   // auto | http | grpc
+    timeout: const Duration(seconds: 30),
+    interceptors: [
+      // 自定义拦截器
+    ],
+    retryPolicy: RetryPolicy(
+      maxAttempts: 5,
+      initialDelay: Duration(milliseconds: 100),
+    ),
+    tracingEnabled: true,    // 注入 W3C traceparent header
+    autoRetryEnabled: true,  // 自动重试（需要设置 retryPolicy）
   ),
-  tracingEnabled: true,    // 注入 W3C traceparent header
-  autoRetryEnabled: true,  // 自动重试（需要设置 retryPolicy）
 );
 ```
 
@@ -451,19 +461,20 @@ TracingInterceptor (若 enabled)
 
 ### 6.2 传输层选择（编译期）
 
-本项目使用 Dart **conditional imports** 实现编译期传输选择，而非运行时 `kIsWeb` 判断：
+本项目使用 Dart **conditional imports** 实现编译期传输选择，而非运行时 `kIsWeb` 判断。该逻辑内置于 `unified_runtime.dart` 中：
 
 ```dart
-// transport_factory.dart
-import 'transport_stub.dart'
-    if (dart.library.io) 'transport_native.dart'      // Android/iOS/Desktop → Dio + SSE
-    if (dart.library.js_interop) 'transport_web.dart'; // Web → Dio HTTP only
+// 在 unified_runtime.dart 内部
+const bool _kIsWeb = bool.fromEnvironment(
+  'dart.library.js_interop',
+  defaultValue: false,
+);
 ```
 
-这样：
+- **Web 编译**：`HttpTransport` 使用 Dio 进行 HTTP 调用（SSE 不可用，抛出 `UnimplementedError`）
+- **Native 编译**：`HttpTransport` 支持 HTTP unary + SSE 流式传输；gRPC 通过 `*pbgrpc.dart` 支持
 
-- **Web 编译**：`grpc` 包完全不进入产物（Tree-Shaking 生效）
-- **Native 编译**：可同时支持 HTTP 和 gRPC
+> 不再需要 `transport_factory.dart` 的 conditional import——所有逻辑已内联到 `unified_runtime.dart` 中。
 
 ### 6.3 RetryPolicy 配置
 
@@ -541,8 +552,7 @@ try {
 ### 6.5 取消操作
 
 ```dart
-import 'package:protoc_gen_dart_unified/src/runtime/rpc_cancel_token.dart';
-
+// unified_runtime.dart 中已包含 RpcCancelToken
 final cancelToken = RpcCancelToken();
 
 // 启动异步调用
@@ -550,8 +560,6 @@ final future = sdk.userService.getUser(GetUserRequest(id: 1));
 
 // 稍后取消
 cancelToken.cancel('User navigated away');
-
-// 在拦截器中检查取消状态
 ```
 
 ---
@@ -701,7 +709,7 @@ buf generate
 
 ### 8.3 使用 gRPC 传输（Native）
 
-当 Protocol 为 `auto` 或 `grpc` 时，需要传入 `picasso`（由 `protoc-gen-dart` 生成）：
+当 Protocol 为 `auto` 或 `grpc` 且 service 无 `google.api.http` 注解时，使用 gRPC 传输（通过 `extraInterceptors` 传入额外拦截器）：
 
 ```dart
 import 'package:grpc/grpc.dart';
@@ -718,18 +726,22 @@ final sdk = ApiSdk(
     endpoint: 'https://api.example.com',
     protocol: Protocol.grpc,
   ),
-  grpcClient: grpc.UserServiceClient(channel),
+  extraInterceptors: const [],
 );
 ```
+
+> 如果 service 同时包含 `google.api.http` 注解，会使用 HTTP 传输。纯 gRPC service 会自动切换到 gRPC 传输并需要 `grpcClient`。
 
 ### 8.4 Streamming 支持
 
 | RPC 类型 | HTTP | gRPC |
 | --- | --- | --- |
 | Unary | ✅ 返回 `Future<T>` | ✅ 返回 `Future<T>` |
-| Server Streaming | ✅ SSE（Native）/ ❌（Web Phase 3） | ✅ 原生 `ResponseStream` |
+| Server Streaming | ✅ SSE（Dio `ResponseType.stream`） | ✅ 原生 `ResponseStream` |
 | Client Streaming | ❌ `UnsupportedError` | ✅ 原生 `RequestStream` |
 | Bidi Streaming | ❌ `UnsupportedError` | ✅ 原生 Bidi |
+
+> HTTP Server Streaming 使用 Dio 的 `ResponseType.stream` 实现 SSE 解析，Native 平台支持，Web 平台目前抛出 `UnimplementedError`。
 
 ### 8.5 协议切换测试
 
@@ -1013,13 +1025,14 @@ lib/
     │   ├── body_mapping.dart
     │   └── query_field.dart
     ├── generators/                 # 代码生成器
-    │   ├── service_generator.dart  # 主文件生成 (500 LOC)
-    │   ├── mock_service_generator.dart
-    │   └── example_test_generator.dart
+    │   ├── service_generator.dart  # 主文件生成 (497 LOC)
+    │   ├── runtime_inline_generator.dart  # 内联运行时模板 (837 LOC)
+    │   ├── mock_service_generator.dart   # Mock 生成器
+    │   └── example_test_generator.dart   # 测试脚手架生成器
     └── runtime/                    # SDK 运行时
         ├── transport.dart          # Transport 抽象基类
         ├── transport_factory.dart  # 条件导入工厂
-        ├── transport_native.dart   # Native HTTP (Dio)
+        ├── transport_native.dart   # Native HTTP (Dio + SSE)
         ├── transport_web.dart      # Web HTTP (Dio)
         ├── transport_stub.dart     # 存根（fallback）
         ├── client_options.dart     # ClientOptions 配置
@@ -1034,7 +1047,7 @@ lib/
         ├── auth_interceptor.dart   # Auth 拦截器
         ├── tracing_interceptor.dart # 链路追踪
         ├── logging_interceptor.dart # 日志
-        ├── sse_parser.dart         # SSE 解析器
+        ├── sse_parser.dart         # SSE 解析器（Dio ResponseType.stream）
         └── with_retry.dart         # 重试工具函数
 
 test/
@@ -1065,19 +1078,26 @@ CodeGenerator.generate( request )   (lib/src/generator.dart)
     │       │
     │       └── ExtensionRegistry     (注册 google.api.http → 读取 HttpRule)
     │
-    ├── ServiceGenerator.generate()  (生成主 .dart 文件)
-    │       │
-    │       ├── _buildAbstractInterface()  (抽象接口)
-    │       ├── _buildUnifiedImpl()        (Unified 实现 + 拦截器链)
-    │       └── _buildApiSdk()            (ApiSdk 入口)
+    ├── RuntimeInlineGenerator.generate()  (生成 unified_runtime.dart)
     │
-    ├── MockServiceGenerator.generate()   (生成 _mock.dart)
-    │
-    └── ExampleTestGenerator.generate()   (生成 _example_test.dart)
+    ├── [foreach service]
+    │   ├── ServiceGenerator.generate()  (生成主 .dart 文件)
+    │   │       │
+    │   │       ├── _buildAbstractInterface()  (抽象接口)
+    │   │       ├── _buildUnifiedImpl()        (Unified 实现 + 拦截器链)
+    │   │       └── _buildApiSdk()            (ApiSdk 入口)
+    │   │
+    │   ├── MockServiceGenerator.generate()   (生成 _mock.dart)
+    │   │
+    │   └── ExampleTestGenerator.generate()   (生成 _example_test.dart)
     │
     ▼
 CodeGeneratorResponse (via stdout)
 ```
+
+生成产物包含：
+- `unified_runtime.dart` — 自包含运行时（每个请求仅发出一份）
+- 每个 service 对应 3 个文件（主文件 + mock + example test，`mock=true` 时）
 
 ### 11.5 调试 Hints
 
