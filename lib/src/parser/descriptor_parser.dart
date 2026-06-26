@@ -9,6 +9,7 @@ import '../model/method_model.dart';
 import '../model/http_rule_model.dart';
 import '../model/message_model.dart';
 import '../model/field_model.dart';
+import '../model/enum_model.dart';
 
 class DescriptorParser {
   List<ServiceModel> parse(List<FileDescriptorProto> files) {
@@ -44,20 +45,91 @@ class DescriptorParser {
 
   /// Parses DescriptorProto list into MessageModel list.
   List<MessageModel> _parseMessages(List<DescriptorProto> descriptors) {
+    // Build a lookup map from type name to DescriptorProto for map detection.
+    final messageMap = <String, DescriptorProto>{
+      for (final d in descriptors) d.name: d,
+    };
+
     return descriptors.map((d) {
+      // Map oneof index to oneof name.
+      final oneofNames = <int, String>{};
+      for (var i = 0; i < d.oneofDecl.length; i++) {
+        oneofNames[i] = d.oneofDecl[i].name;
+      }
+
+      // Parse nested enum types.
+      final enums = d.enumType.map((e) {
+        return EnumModel(
+          name: e.name,
+          fullName: '${d.name}.${e.name}',
+          values: e.value
+              .map((v) => EnumValueModel(name: v.name, number: v.number))
+              .toList(),
+        );
+      }).toList();
+
       final fields = d.field.map((f) {
+        // Extract oneof name if this field belongs to a oneof.
+        final oneofName = f.hasOneofIndex() ? oneofNames[f.oneofIndex] : null;
+
+        // Check if this is an enum field.
+        final isEnum = f.type == FieldDescriptorProto_Type.TYPE_ENUM;
+
+        // Extract enum value names if enum field.
+        List<String>? enumValues;
+        if (isEnum) {
+          final enumType = d.enumType.firstWhere(
+            (e) => '.${d.name}.${e.name}' == f.typeName ||
+                e.name == f.typeName.split('.').last,
+            orElse: () => EnumDescriptorProto(),
+          );
+          if (enumType.name.isNotEmpty) {
+            enumValues = enumType.value.map((v) => v.name).toList();
+          }
+        }
+
+        // Extract map key/value types if this field references a map entry.
+        String? mapKeyType;
+        String? mapValueType;
+        final isMap = f.type == FieldDescriptorProto_Type.TYPE_MESSAGE &&
+            f.typeName.isNotEmpty;
+        if (isMap) {
+          final entryName = f.typeName.split('.').last;
+          final entryMsg = messageMap[entryName];
+          if (entryMsg != null && entryMsg.hasOptions() &&
+              entryMsg.options.mapEntry) {
+            // This is a genuine map field — extract key/value types.
+            for (final entryField in entryMsg.field) {
+              if (entryField.name == 'key') {
+                mapKeyType = entryField.type.name;
+              } else if (entryField.name == 'value') {
+                mapValueType = entryField.type.name;
+              }
+            }
+          }
+        }
+
         return FieldModel(
           name: f.name,
           type: f.type.name,
           isRepeated: f.label == FieldDescriptorProto_Label.LABEL_REPEATED,
           isOptional: f.label == FieldDescriptorProto_Label.LABEL_OPTIONAL,
-          isMap:
-              f.type == FieldDescriptorProto_Type.TYPE_MESSAGE &&
-              f.typeName.isNotEmpty,
+          isMap: isMap,
           messageType: f.typeName,
+          oneofName: oneofName,
+          isEnum: isEnum,
+          enumValues: enumValues,
+          mapKeyType: mapKeyType,
+          mapValueType: mapValueType,
         );
       }).toList();
-      return MessageModel(name: d.name, fullName: d.name, fields: fields);
+
+      return MessageModel(
+        name: d.name,
+        fullName: d.name,
+        fields: fields,
+        enums: enums,
+      );
     }).toList();
   }
 

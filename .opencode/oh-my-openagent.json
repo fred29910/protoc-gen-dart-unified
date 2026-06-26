@@ -62,7 +62,7 @@
       ]
     },
     "explore": {
-      "model": "opencode/mimo-v2.5-free",
+      "model": "opencode/north-mini-code-free",
       "fallback_models": [
         {
           "model": "zenmux/z-ai/glm-5.2-free"
