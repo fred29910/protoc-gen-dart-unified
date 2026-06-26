@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:dio/dio.dart';
 import 'transport.dart';
+import 'grpc_client.dart';
 import 'api_exception.dart';
 import 'sse_parser.dart';
 
@@ -10,7 +11,7 @@ import 'sse_parser.dart';
 /// but no gRPC client is available.
 Transport? createTransport(
   String endpoint, {
-  dynamic grpcClient,
+  GrpcClient? grpcClient,
   List<RpcInterceptor> interceptors = const [],
 }) {
   // Native platform: always return HttpTransport for HTTP.
@@ -223,13 +224,12 @@ class HttpTransport extends Transport {
   }
 }
 
-/// gRPC transport implementation that delegates to generated *ServiceClient.
+/// gRPC transport implementation that delegates to a [GrpcClient].
 ///
-/// This is a scaffold — full implementation requires the generated
-/// *ServiceClient classes from protoc-gen-dart.
+/// Uses the [GrpcClient] interface to make actual gRPC calls,
+/// wrapping them with the interceptor chain.
 class GrpcTransport extends Transport {
-  // ignore: unused_field — reserved for generated *ServiceClient delegation
-  final dynamic _client;
+  final GrpcClient _client;
   final List<RpcInterceptor> _interceptors;
 
   GrpcTransport(this._client, {List<RpcInterceptor> interceptors = const []})
@@ -259,17 +259,8 @@ class GrpcTransport extends Transport {
     Object request,
     RpcCallOptions? options,
   ) async {
-    // gRPC unary call delegates to the generated *ServiceClient.
-    // The generated code casts _client to the correct type and calls the method.
-    //
-    // When RpcCancelToken is provided, the generated code should listen to
-    // cancelToken.onCancel and call ResponseFuture.cancel().
-    // This is handled at the generated code level (see B1: ServiceGenerator).
-    throw UnimplementedError(
-      'gRPC unary call requires generated *ServiceClient for '
-      '$serviceName.$methodName. '
-      'Pass the *ServiceClient from *.pbgrpc.dart to ApiSdk(grpcClient: ...).',
-    );
+    return _client.unaryCall<T>(serviceName, methodName, request,
+        options: options);
   }
 
   @override
@@ -279,12 +270,7 @@ class GrpcTransport extends Transport {
     Object request, {
     RpcCallOptions? options,
   }) {
-    // gRPC server streaming delegates to the generated *ServiceClient.
-    // The generated code casts _client to the correct type and calls the method.
-    throw UnimplementedError(
-      'gRPC server streaming requires generated *ServiceClient for '
-      '$serviceName.$methodName. '
-      'Pass the *ServiceClient from *.pbgrpc.dart to ApiSdk(grpcClient: ...).',
-    );
+    return _client.serverStream<T>(serviceName, methodName, request,
+        options: options);
   }
 }

@@ -389,6 +389,27 @@ abstract class Transport {
   }
 }
 
+/// Abstract interface for gRPC client delegation.
+///
+/// Implementations wrap generated *ServiceClient classes from
+/// protoc_plugin (pbgrpc.dart) to provide typed gRPC calls
+/// through the interceptor chain.
+abstract class GrpcClient {
+  Future<T> unaryCall<T>(
+    String serviceName,
+    String methodName,
+    Object request, {
+    RpcCallOptions? options,
+  });
+
+  Stream<T> serverStream<T>(
+    String serviceName,
+    String methodName,
+    Object request, {
+    RpcCallOptions? options,
+  });
+}
+
 class HttpTransport extends Transport {
   final Dio _dio;
   final List<RpcInterceptor> _interceptors;

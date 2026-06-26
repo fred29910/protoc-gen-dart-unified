@@ -111,7 +111,7 @@ class ServiceGenerator {
         Field(
           (f) => f
             ..name = '_grpcClient'
-            ..type = refer('dynamic')
+            ..type = refer('GrpcClient')
             ..modifier = FieldModifier.final$,
         ),
       );
@@ -135,7 +135,7 @@ class ServiceGenerator {
         Parameter(
           (p) => p
             ..name = 'grpcClient'
-            ..type = refer('dynamic')
+            ..type = refer('GrpcClient')
             ..toThis = true,
         ),
       );
@@ -400,16 +400,17 @@ class ServiceGenerator {
     ''');
   }
 
-  /// Builds gRPC server streaming body — delegates to generated *ServiceClient.
+  /// Builds gRPC server streaming body — delegates to transport.
   Code _buildGrpcServerStreamBody(MethodModel method) {
     final methodName = _dartMethodName(method.name);
-    // gRPC server streaming delegates to the generated *ServiceClient
-    // which returns ResponseStream<T> (a Stream<T>).
-    // The generated *ServiceClient is imported from *.pbgrpc.dart.
+    // gRPC server streaming delegates to GrpcTransport.serverStream,
+    // which in turn calls GrpcClient.serverStream on the underlying client.
     return Code('''
-    // gRPC server streaming via generated *ServiceClient
-    final client = _grpcClient as dynamic;
-    return client.$methodName(request) as Stream<${method.outputType}>;
+    return _transport.serverStream<${method.outputType}>(
+      '${service.name}',
+      '$methodName',
+      request,
+    );
     ''');
   }
 
@@ -446,7 +447,7 @@ class ServiceGenerator {
         Parameter(
           (p) => p
             ..name = 'grpcClient'
-            ..type = refer('dynamic')
+            ..type = refer('GrpcClient')
             ..defaultTo = const Code('null')
             ..named = true,
         ),

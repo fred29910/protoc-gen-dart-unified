@@ -1,7 +1,8 @@
 import 'transport.dart';
+import 'grpc_client.dart';
 
 Transport? createTransport(
   String endpoint, {
-  dynamic grpcClient,
+  GrpcClient? grpcClient,
   List<RpcInterceptor> interceptors = const [],
 }) => null;
