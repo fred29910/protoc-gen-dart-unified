@@ -34,7 +34,7 @@ class ExampleTestGenerator {
       Directive.import('package:test/test.dart'),
       Directive.import('package:mockito/mockito.dart'),
       Directive.import(
-        '../${service.protoFileName.replaceAll('.proto', '.pb.dart')}',
+        service.protoFileName.replaceAll('.proto', '.pb.dart'),
       ),
       Directive.import('${serviceName}_mock.dart'),
       Directive.import('$serviceName.dart'),

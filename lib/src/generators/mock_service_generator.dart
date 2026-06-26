@@ -2,12 +2,11 @@ import 'package:code_builder/code_builder.dart';
 import 'package:dart_style/dart_style.dart';
 import 'package:pub_semver/pub_semver.dart';
 import '../model/service_model.dart';
-import '../model/method_model.dart';
 
 /// Generates a mock client file (*_mock.dart) for testing purposes.
 ///
-/// Produces a `@GenerateNiceMocks` annotated class that implements
-/// the abstract service interface, ready for use with mockito + build_runner.
+/// Produces a `Mock` class that implements the abstract service interface,
+/// ready for use with mockito (no build_runner needed).
 class MockServiceGenerator {
   final ServiceModel service;
 
@@ -29,52 +28,23 @@ class MockServiceGenerator {
 
   List<Directive> _buildDirectives() {
     return [
-      Directive.import('unified_runtime.dart'),
-      Directive.import('package:mockito/annotations.dart'),
+      Directive.import('package:mockito/mockito.dart'),
       Directive.import(
-        '../${service.protoFileName.replaceAll('.proto', '.pb.dart')}',
+        service.protoFileName.replaceAll('.proto', '.pb.dart'),
       ),
       Directive.import('${_dartServiceName(service.name)}.dart'),
     ];
   }
 
-  /// Builds the mock class with @GenerateNiceMocks annotation.
+  /// Builds the mock class that extends [Mock] and implements the service.
   Class _buildMockClass() {
     final mockClassName = 'Mock${service.name}';
 
     return Class(
       (b) => b
         ..name = mockClassName
-        ..annotations.add(
-          refer('GenerateNiceMocks').call([
-            literalList([refer(mockClassName)]),
-          ]),
-        )
-        ..implements.add(refer(service.name))
-        ..methods.addAll(service.methods.map(_buildMockMethod)),
-    );
-  }
-
-  /// Builds a single mock method that throws UnimplementedError.
-  Method _buildMockMethod(MethodModel method) {
-    final methodName = _dartMethodName(method.name);
-    final returnType = method.isServerStreaming
-        ? refer('Stream<${method.outputType}>')
-        : refer('Future<${method.outputType}>');
-
-    return Method(
-      (b) => b
-        ..name = methodName
-        ..annotations.add(refer('override'))
-        ..returns = returnType
-        ..requiredParameters.add(
-          Parameter(
-            (p) => p
-              ..name = 'request'
-              ..type = refer(method.inputType),
-          ),
-        )
-        ..body = const Code('throw UnimplementedError();'),
+        ..extend = refer('Mock')
+        ..implements.add(refer(service.name)),
     );
   }
 
@@ -86,11 +56,5 @@ class MockServiceGenerator {
           (match) => '_${match.group(0)!.toLowerCase()}',
         )
         .replaceFirst('_', '');
-  }
-
-  /// Converts proto method name to Dart method name (PascalCase → camelCase).
-  String _dartMethodName(String protoName) {
-    if (protoName.isEmpty) return protoName;
-    return protoName[0].toLowerCase() + protoName.substring(1);
   }
 }
