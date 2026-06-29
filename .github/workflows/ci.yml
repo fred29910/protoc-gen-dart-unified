@@ -26,7 +26,7 @@ jobs:
           sdk: ${{ matrix.dart-version }}
 
       - name: Cache Pub packages
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.pub-cache
           key: pub-cache-${{ runner.os }}-${{ matrix.dart-version }}-${{ hashFiles('pubspec.yaml') }}
