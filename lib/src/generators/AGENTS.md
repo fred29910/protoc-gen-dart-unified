@@ -1,18 +1,19 @@
 # Code Generators
 
-**Generated:** 2026-06-26
+**Generated:** 2026-07-15
 **Parent:** `AGENTS.md` (root)
 
 ## OVERVIEW
 
-Code generation core — 4 generators that produce service files, mocks, example tests, and the self-contained runtime. `code_builder` + `DartFormatter` stack. ~1500 LOC combined.
+Code generation core — 5 files (4 generators + pluggable registry) that produce service files, mocks, example tests, and the self-contained runtime. `code_builder` + `DartFormatter` stack. ~1670 LOC combined.
 
 ## STRUCTURE
 
 ```
 generators/
+├── generator_registry.dart       # 148 LOC — pluggable dispatch, defaultRegistry()
 ├── service_generator.dart        # 497 LOC — interface + Unified impl + ApiSdk
-├── runtime_inline_generator.dart # 837 LOC template — emits unified_runtime.dart
+├── runtime_inline_generator.dart # 858 LOC template — emits unified_runtime.dart
 ├── mock_service_generator.dart   # 60 LOC — mockito-based Mock class
 └── example_test_generator.dart   # 108 LOC — test scaffold with stubs
 ```
@@ -28,6 +29,7 @@ generators/
 | Inline runtime emission | `runtime_inline_generator.dart` | Single `generate()` method returning full source string |
 | Mock generation | `mock_service_generator.dart` | Extends Mockito's Mock, implements service |
 | Example test generation | `example_test_generator.dart` | group/test per method with mockito stubs |
+| Generator dispatch | `generator_registry.dart` | Pluggable registry; `defaultRegistry` wires Service/Mock/ExampleTest/RuntimeInline |
 
 ## CONVENTIONS
 
@@ -44,3 +46,4 @@ generators/
 - Don't put runtime logic in generators — keep codegen separate from runtime
 - Don't use `dart:io` in generated code — runtime_inline_generator is platform-agnostic (web-compatible)
 - Don't add huge templates to service_generator — move to runtime_inline_generator when >50 lines inline
+- `GeneratorRegistry.defaultRegistry()` is the single dispatch point — add new output types there, not in `CodeGenerator`
