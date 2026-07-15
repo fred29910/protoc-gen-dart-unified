@@ -1,8 +1,8 @@
 # AGENTS.md
 
-**Generated:** 2026-06-26
-**Commit:** `51fe1b7`
-**Branch:** `main`
+**Generated:** 2026-07-15
+**Commit:** `f39e5ae`
+**Branch:** `feature/20260626/post-review-fixes-and-optimization`
 
 This file provides guidance to OpenCode when working with code in this repository.
 
@@ -15,13 +15,13 @@ This file provides guidance to OpenCode when working with code in this repositor
 | Task | Location | Notes |
 |------|----------|-------|
 | Plugin entry | `bin/protoc_gen_dart_unified.dart` | Reads stdin, writes stdout |
-| Code generation | `lib/src/generators/service_generator.dart` | 500 LOC, generates interface + impl + SDK |
-| Inline runtime generation | `lib/src/generators/runtime_inline_generator.dart` | 837 LOC template, emits self-contained `unified_runtime.dart` |
+| Code generation | `lib/src/generators/service_generator.dart` | 497 LOC, generates interface + impl + SDK |
+| Inline runtime generation | `lib/src/generators/runtime_inline_generator.dart` | 858 LOC template, emits self-contained `unified_runtime.dart` |
 | Mock generation | `lib/src/generators/mock_service_generator.dart` | Mock client for testing |
 | Example test scaffold | `lib/src/generators/example_test_generator.dart` | Example test generator |
 | Proto parsing | `lib/src/parser/descriptor_parser.dart` | FileDescriptorProto → ServiceModel |
 | HTTP extension registry | `lib/src/parser/extension_registry.dart` | google.api.http custom option |
-| Runtime transport | `lib/src/runtime/` | 19 files — transport, interceptors, SSE |
+| Runtime transport | `lib/src/runtime/` | 20 files — transport, interceptors, SSE, gRPC client |
 | HTTP mapping | `lib/src/builder/` | Path resolution, body mapping, query flattening |
 | Data models | `lib/src/model/` | ServiceModel, MethodModel, HttpRuleModel, etc. |
 | Integration test | `test/generator_integration_test.dart` | Programmatic CodeGeneratorRequest |
@@ -102,6 +102,7 @@ lib/
     ├── model/                            # Internal models: ServiceModel, MethodModel, HttpRuleModel, MessageModel, FieldModel
     ├── builder/                          # HTTP mapping logic: path resolution, body mapping, query flattening
     ├── generators/
+    │   ├── generator_registry.dart       # Pluggable generator dispatch (defaultRegistry wires 4 generators)
     │   ├── service_generator.dart        # Main generator: abstract interface + Unified impl + ApiSdk
     │   ├── runtime_inline_generator.dart # Inline runtime generation, emits unified_runtime.dart
     │   ├── mock_service_generator.dart   # Mock client generator
