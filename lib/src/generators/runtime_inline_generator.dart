@@ -610,11 +610,74 @@ class HttpTransport extends Transport {
   }
 }
 
+/// gRPC transport implementation that delegates to a [GrpcClient].
+///
+/// Uses the [GrpcClient] interface to make actual gRPC calls,
+/// wrapping them with the interceptor chain.
+class GrpcTransport extends Transport {
+  final GrpcClient _client;
+  final List<RpcInterceptor> _interceptors;
+
+  GrpcTransport(this._client, {List<RpcInterceptor> interceptors = const []})
+    : _interceptors = interceptors;
+
+  @override
+  Future<T> unaryCall<T>(
+    String serviceName,
+    String methodName,
+    Object request, {
+    RpcCallOptions? options,
+  }) {
+    return executeWithInterceptors<T>(
+      serviceName,
+      methodName,
+      request,
+      options,
+      _interceptors,
+      (req, opts) => _rawGrpcUnaryCall<T>(serviceName, methodName, req, opts),
+    );
+  }
+
+  /// Core gRPC call without interceptor chain (used as finalCall).
+  Future<T> _rawGrpcUnaryCall<T>(
+    String serviceName,
+    String methodName,
+    Object request,
+    RpcCallOptions? options,
+  ) async {
+    return _client.unaryCall<T>(serviceName, methodName, request,
+        options: options);
+  }
+
+  @override
+  Stream<T> serverStream<T>(
+    String serviceName,
+    String methodName,
+    Object request, {
+    RpcCallOptions? options,
+  }) {
+    return _client.serverStream<T>(serviceName, methodName, request,
+        options: options);
+  }
+}
+
 Transport? createTransport(
   String endpoint, {
-  dynamic grpcClient,
+  GrpcClient? grpcClient,
   List<RpcInterceptor> interceptors = const [],
+  Protocol protocol = Protocol.auto,
 }) {
+  // Protocol.auto: native defaults to gRPC if grpcClient provided, otherwise HTTP
+  // Protocol.http: always HTTP
+  // Protocol.grpc: gRPC only, requires grpcClient
+  final useGrpc = switch (protocol) {
+    Protocol.grpc => true,
+    Protocol.http => false,
+    Protocol.auto => grpcClient != null,
+  };
+  if (useGrpc && grpcClient != null) {
+    return GrpcTransport(grpcClient, interceptors: interceptors);
+  }
   return HttpTransport(endpoint, interceptors: interceptors);
 }
 

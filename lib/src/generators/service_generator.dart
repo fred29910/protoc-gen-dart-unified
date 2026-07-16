@@ -5,7 +5,6 @@ import '../model/service_model.dart';
 import '../model/method_model.dart';
 import '../model/message_model.dart';
 import '../builder/http_mapper.dart';
-import '../builder/query_field.dart';
 
 /// Generates a complete service file (abstract + unified impl + ApiSdk)
 /// using code_builder AST construction.
@@ -248,17 +247,11 @@ class ServiceGenerator {
     );
 
     final pathMapping = HttpMapper.mapPath(httpRule.path, inputMessage.fields);
-    final bodyMapping = HttpMapper.resolveBody(
+    final queryFields = HttpMapper.flattenQuery(
       inputMessage.fields,
-      httpRule.body,
+      pathMapping.pathFieldNames.toSet(),
+      '',
     );
-    final queryFields = bodyMapping.kind == 'all'
-        ? <QueryField>[]
-        : HttpMapper.flattenQuery(
-            inputMessage.fields,
-            pathMapping.pathFieldNames.toSet(),
-            bodyMapping.kind == 'field' ? bodyMapping.fieldName ?? '' : '',
-          );
 
     final pathInterpolation = StringBuffer();
     for (var i = 0; i < pathMapping.literalSegments.length; i++) {
@@ -270,14 +263,6 @@ class ServiceGenerator {
       }
     }
 
-    String bodyCode = '';
-    if (bodyMapping.kind == 'all') {
-      bodyCode = 'httpBody: request.toProto3Json(),';
-    } else if (bodyMapping.kind == 'field') {
-      bodyCode =
-          'httpBody: request.${HttpMapper.toCamelCase(bodyMapping.fieldName!)}.toProto3Json(),';
-    }
-
     String queryCode = '';
     if (queryFields.isNotEmpty) {
       queryCode = 'httpQueryParams: {';
@@ -287,33 +272,22 @@ class ServiceGenerator {
       queryCode += '},';
     }
 
+    // Note: additional_bindings are not used in client code generation.
+    // The client always uses the primary binding.
+    final additionalBindingsComment = httpRule.additionalBindings.isNotEmpty
+        ? ' // additional bindings: ${httpRule.additionalBindings.map((b) => '${b.kind} ${b.path}').join(', ')}'
+        : '';
+
     return '''RpcCallOptions(
-        httpMethod: '${httpRule.kind}',
-        httpPath: '$pathInterpolation',
-        $bodyCode
-        $queryCode
-      )''';
+      httpMethod: '${httpRule.kind}',
+      httpPath: '$pathInterpolation',
+      $queryCode
+    )$additionalBindingsComment''';
   }
 
-  /// Builds the core HTTP unary call expression (returns the expression string).
+  /// Builds HTTP unary call.
   String _buildHttpUnaryCall(MethodModel method) {
     final methodName = _dartMethodName(method.name);
-    final httpRule = method.httpRule;
-
-    if (httpRule == null) {
-      return "throw UnsupportedError('$methodName has no google.api.http annotation')";
-    }
-
-    // When response_body is set, we need to extract a specific field from the response
-    if (httpRule.responseBody.isNotEmpty) {
-      return '''_transport.unaryCall<Map<String, dynamic>>(
-      '${service.name}',
-      '$methodName',
-      request,
-      options: ctx.options,
-    ).then((response) => ${method.outputType}.fromProto3Json(response['${httpRule.responseBody}']) as ${method.outputType})''';
-    }
-
     return '''_transport.unaryCall<${method.outputType}>(
       '${service.name}',
       '$methodName',
@@ -325,7 +299,7 @@ class ServiceGenerator {
   /// Builds the core gRPC unary call expression.
   String _buildGrpcUnaryCall(MethodModel method) {
     final methodName = _dartMethodName(method.name);
-    return '''_transport.unaryCall<${method.outputType}>(
+    return '''_grpcClient!.unaryCall<${method.outputType}>(
       '${service.name}',
       '$methodName',
       request,
@@ -400,13 +374,11 @@ class ServiceGenerator {
     ''');
   }
 
-  /// Builds gRPC server streaming body — delegates to transport.
+  /// Builds gRPC server streaming body — delegates to _grpcClient.
   Code _buildGrpcServerStreamBody(MethodModel method) {
     final methodName = _dartMethodName(method.name);
-    // gRPC server streaming delegates to GrpcTransport.serverStream,
-    // which in turn calls GrpcClient.serverStream on the underlying client.
     return Code('''
-    return _transport.serverStream<${method.outputType}>(
+    return _grpcClient!.serverStream<${method.outputType}>(
       '${service.name}',
       '$methodName',
       request,

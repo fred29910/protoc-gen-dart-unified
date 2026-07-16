@@ -4,18 +4,26 @@ import 'transport.dart';
 import 'grpc_client.dart';
 import 'api_exception.dart';
 import 'sse_parser.dart';
+import 'protocol.dart';
 
 /// Creates a transport for native platforms (iOS, Android, Desktop).
 ///
-/// Returns an HttpTransport for HTTP-only mode, or null if gRPC is needed
-/// but no gRPC client is available.
+/// Returns an HttpTransport for HTTP-only mode, or GrpcTransport if gRPC is
+/// requested and a GrpcClient is provided.
 Transport? createTransport(
   String endpoint, {
   GrpcClient? grpcClient,
   List<RpcInterceptor> interceptors = const [],
+  Protocol protocol = Protocol.auto,
 }) {
-  // Native platform: always return HttpTransport for HTTP.
-  // For gRPC, the generated code uses grpcClient directly via _grpcClient field.
+  final useGrpc = switch (protocol) {
+    Protocol.grpc => true,
+    Protocol.http => false,
+    Protocol.auto => grpcClient != null,
+  };
+  if (useGrpc && grpcClient != null) {
+    return GrpcTransport(grpcClient, interceptors: interceptors);
+  }
   return HttpTransport(endpoint, interceptors: interceptors);
 }
 
