@@ -143,6 +143,62 @@ void main() {
       expect(response.file[1].name, equals('user_service.dart'));
     });
 
+    test('gRPC-only service has no pbgrpc import in directives', () {
+      // echo.proto fixture: pure gRPC service, no google.api.http annotations
+      final file = FileDescriptorProto()
+        ..name = 'echo.proto'
+        ..package = 'echo'
+        ..messageType.add(
+          DescriptorProto()
+            ..name = 'EchoRequest'
+            ..field.add(
+              FieldDescriptorProto()
+                ..name = 'message'
+                ..number = 1
+                ..label = FieldDescriptorProto_Label.LABEL_OPTIONAL
+                ..type = FieldDescriptorProto_Type.TYPE_STRING,
+            ),
+        )
+        ..messageType.add(
+          DescriptorProto()
+            ..name = 'EchoResponse'
+            ..field.add(
+              FieldDescriptorProto()
+                ..name = 'message'
+                ..number = 1
+                ..label = FieldDescriptorProto_Label.LABEL_OPTIONAL
+                ..type = FieldDescriptorProto_Type.TYPE_STRING,
+            ),
+        )
+        ..service.add(
+          ServiceDescriptorProto()
+            ..name = 'EchoService'
+            ..method.add(
+              MethodDescriptorProto()
+                ..name = 'Echo'
+                ..inputType = '.echo.EchoRequest'
+                ..outputType = '.echo.EchoResponse',
+            ),
+        );
+
+      final generator = CodeGenerator();
+      final response = generator.generate(
+        CodeGeneratorRequest(fileToGenerate: ['echo.proto'], protoFile: [file]),
+      );
+
+      expect(response.error, isEmpty);
+      final content = response.file
+          .firstWhere((f) => f.name == 'echo_service.dart')
+          .content;
+
+      // gRPC-only services must NOT import pbgrpc (web isolation)
+      expect(content, isNot(contains("import '../echo.pbgrpc.dart'")),
+          reason: 'gRPC-only services should not import pbgrpc');
+      // Only unified_runtime.dart + *.pb.dart imports remain
+      expect(content, contains("import 'unified_runtime.dart'"));
+      expect(content, contains("import 'echo.pb.dart'"));
+    });
+
     test('declares FEATURE_PROTO3_OPTIONAL in supportedFeatures', () {
       final generator = CodeGenerator();
       final response = generator.generate(

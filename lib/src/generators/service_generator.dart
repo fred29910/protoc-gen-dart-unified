@@ -40,20 +40,16 @@ class ServiceGenerator {
   }
 
   List<Directive> _buildDirectives() {
-    final directives = <Directive>[
+    // Service files only depend on unified_runtime.dart and the protobuf
+    // message types. The gRPC client (*.pbgrpc.dart) is referenced at runtime
+    // via GrpcClient, never imported at compile time — this keeps the
+    // generated code free of dart:io/grpc so it compiles on the web.
+    return <Directive>[
       Directive.import('unified_runtime.dart'),
       Directive.import(
         service.protoFileName.replaceAll('.proto', '.pb.dart'),
       ),
     ];
-    if (!_useHttp) {
-      directives.add(
-        Directive.import(
-          '../${service.protoFileName.replaceAll('.proto', '.pbgrpc.dart')}',
-        ),
-      );
-    }
-    return directives;
   }
 
   /// Builds the abstract service interface.
