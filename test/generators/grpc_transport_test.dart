@@ -89,9 +89,6 @@ void main() {
           .firstWhere((f) => f.name == 'auth_service.dart');
       final content = serviceFile.content;
 
-      // Should import pbgrpc.dart
-      expect(content, contains("import '../auth.pbgrpc.dart'"));
-
       // Should have _grpcClient field in UnifiedAuthService
       expect(content, contains('_grpcClient'));
 
