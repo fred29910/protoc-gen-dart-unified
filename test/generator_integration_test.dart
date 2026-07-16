@@ -199,6 +199,67 @@ void main() {
       expect(content, contains("import 'echo.pb.dart'"));
     });
 
+    test('Unified<Service> for gRPC has no _grpcClient field or grpcClient ctor param', () {
+      // echo.proto fixture: pure gRPC service, no google.api.http annotations.
+      // After web-grpc-isolation, Unified must hold only _transport + _interceptors
+      // and delegate via _transport (Task 1.3/1.4), never a _grpcClient field.
+      final file = FileDescriptorProto()
+        ..name = 'echo.proto'
+        ..package = 'echo'
+        ..messageType.add(
+          DescriptorProto()
+            ..name = 'EchoRequest'
+            ..field.add(
+              FieldDescriptorProto()
+                ..name = 'message'
+                ..number = 1
+                ..label = FieldDescriptorProto_Label.LABEL_OPTIONAL
+                ..type = FieldDescriptorProto_Type.TYPE_STRING,
+            ),
+        )
+        ..messageType.add(
+          DescriptorProto()
+            ..name = 'EchoResponse'
+            ..field.add(
+              FieldDescriptorProto()
+                ..name = 'message'
+                ..number = 1
+                ..label = FieldDescriptorProto_Label.LABEL_OPTIONAL
+                ..type = FieldDescriptorProto_Type.TYPE_STRING,
+            ),
+        )
+        ..service.add(
+          ServiceDescriptorProto()
+            ..name = 'EchoService'
+            ..method.add(
+              MethodDescriptorProto()
+                ..name = 'Echo'
+                ..inputType = '.echo.EchoRequest'
+                ..outputType = '.echo.EchoResponse',
+            ),
+        );
+
+      final generator = CodeGenerator();
+      final response = generator.generate(
+        CodeGeneratorRequest(fileToGenerate: ['echo.proto'], protoFile: [file]),
+      );
+
+      expect(response.error, isEmpty);
+      final content = response.file
+          .firstWhere((f) => f.name == 'echo_service.dart')
+          .content;
+
+      // Unified class must NOT declare a _grpcClient field
+      expect(content, isNot(contains('final GrpcClient _grpcClient')),
+          reason: 'Unified class should not declare a _grpcClient field');
+      // Unified constructor must NOT take a grpcClient parameter
+      expect(content, isNot(contains('this.grpcClient')),
+          reason: 'Unified constructor should not take a grpcClient parameter');
+      // Only _transport and _interceptors fields remain
+      expect(content, contains('final Transport _transport'));
+      expect(content, contains('final List<RpcInterceptor> _interceptors'));
+    });
+
     test('declares FEATURE_PROTO3_OPTIONAL in supportedFeatures', () {
       final generator = CodeGenerator();
       final response = generator.generate(

@@ -83,8 +83,6 @@ class ServiceGenerator {
 
   /// Builds the unified service implementation.
   Class _buildUnifiedImpl() {
-    final isGrpc = !_useHttp;
-
     final fields = <Field>[
       Field(
         (f) => f
@@ -100,18 +98,6 @@ class ServiceGenerator {
       ),
     ];
 
-    // For gRPC services, add a _grpcClient field for direct delegation
-    if (isGrpc) {
-      fields.add(
-        Field(
-          (f) => f
-            ..name = '_grpcClient'
-            ..type = refer('GrpcClient')
-            ..modifier = FieldModifier.final$,
-        ),
-      );
-    }
-
     final ctorParams = <Parameter>[
       Parameter(
         (p) => p
@@ -124,17 +110,6 @@ class ServiceGenerator {
           ..toThis = true,
       ),
     ];
-
-    if (isGrpc) {
-      ctorParams.add(
-        Parameter(
-          (p) => p
-            ..name = 'grpcClient'
-            ..type = refer('GrpcClient')
-            ..toThis = true,
-        ),
-      );
-    }
 
     return Class(
       (b) => b
