@@ -89,16 +89,19 @@ void main() {
           .firstWhere((f) => f.name == 'auth_service.dart');
       final content = serviceFile.content;
 
-      // Should have _grpcClient field in UnifiedAuthService
-      expect(content, contains('_grpcClient'));
+      // UnifiedAuthService must NOT hold a _grpcClient field (web-grpc-isolation)
+      expect(content, isNot(contains('_grpcClient')));
 
-      // Should call _grpcClient.unaryCall for gRPC methods
-      expect(content, contains('_grpcClient!.unaryCall'));
+      // gRPC unary methods must route through _transport.unaryCall
+      expect(content, contains('_transport.unaryCall'));
+
+      // Should NOT call _grpcClient.unaryCall directly
+      expect(content, isNot(contains('_grpcClient!.unaryCall')));
 
       // Should import GrpcClient from unified_runtime
       expect(content, contains("import 'unified_runtime.dart'"));
 
-      // ApiSdk should pass grpcClient to createTransport
+      // ApiSdk should pass grpcClient to createTransport (intermediate state, fixed in 1.5)
       expect(content, contains('grpcClient:'));
     });
 
@@ -156,11 +159,14 @@ void main() {
           .firstWhere((f) => f.name == 'auth_service.dart');
       final content = serviceFile.content;
 
-      // Should have _grpcClient field
-      expect(content, contains('_grpcClient'));
+      // Should NOT have _grpcClient field
+      expect(content, isNot(contains('_grpcClient')));
 
-      // Should call _grpcClient.unaryCall
-      expect(content, contains('_grpcClient!.unaryCall'));
+      // gRPC unary methods must route through _transport.unaryCall
+      expect(content, contains('_transport.unaryCall'));
+
+      // Should NOT call _grpcClient.unaryCall directly
+      expect(content, isNot(contains('_grpcClient!.unaryCall')));
     });
   });
 }

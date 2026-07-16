@@ -260,6 +260,67 @@ void main() {
       expect(content, contains('final List<RpcInterceptor> _interceptors'));
     });
 
+    test('gRPC unary call delegates to _transport.unaryCall', () {
+      // echo.proto fixture: pure gRPC service, no google.api.http annotations.
+      // After web-grpc-isolation, the unary call body must route through
+      // _transport.unaryCall (carrying ctx.options), not _grpcClient.unaryCall.
+      final file = FileDescriptorProto()
+        ..name = 'echo.proto'
+        ..package = 'echo'
+        ..messageType.add(
+          DescriptorProto()
+            ..name = 'EchoRequest'
+            ..field.add(
+              FieldDescriptorProto()
+                ..name = 'message'
+                ..number = 1
+                ..label = FieldDescriptorProto_Label.LABEL_OPTIONAL
+                ..type = FieldDescriptorProto_Type.TYPE_STRING,
+            ),
+        )
+        ..messageType.add(
+          DescriptorProto()
+            ..name = 'EchoResponse'
+            ..field.add(
+              FieldDescriptorProto()
+                ..name = 'message'
+                ..number = 1
+                ..label = FieldDescriptorProto_Label.LABEL_OPTIONAL
+                ..type = FieldDescriptorProto_Type.TYPE_STRING,
+            ),
+        )
+        ..service.add(
+          ServiceDescriptorProto()
+            ..name = 'EchoService'
+            ..method.add(
+              MethodDescriptorProto()
+                ..name = 'Echo'
+                ..inputType = '.echo.EchoRequest'
+                ..outputType = '.echo.EchoResponse',
+            ),
+        );
+
+      final generator = CodeGenerator();
+      final response = generator.generate(
+        CodeGeneratorRequest(fileToGenerate: ['echo.proto'], protoFile: [file]),
+      );
+
+      expect(response.error, isEmpty);
+      final content = response.file
+          .firstWhere((f) => f.name == 'echo_service.dart')
+          .content;
+
+      // The echo method must exist
+      expect(content, contains('Future<EchoResponse> echo('),
+          reason: 'echo method should exist');
+      // The unary call body must delegate to _transport.unaryCall
+      expect(content, contains('_transport.unaryCall<EchoResponse>'),
+          reason: 'method should delegate to _transport.unaryCall');
+      // It must NOT call _grpcClient.unaryCall directly
+      expect(content, isNot(contains('_grpcClient.unaryCall')),
+          reason: 'should not call _grpcClient directly');
+    });
+
     test('declares FEATURE_PROTO3_OPTIONAL in supportedFeatures', () {
       final generator = CodeGenerator();
       final response = generator.generate(

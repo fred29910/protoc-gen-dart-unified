@@ -268,12 +268,16 @@ class ServiceGenerator {
   }
 
   /// Builds the core gRPC unary call expression.
+  ///
+  /// Routes through [_transport.unaryCall] (carrying [InterceptorContext.options])
+  /// so the gRPC branch shares the same transport dispatch as the HTTP branch.
   String _buildGrpcUnaryCall(MethodModel method) {
     final methodName = _dartMethodName(method.name);
-    return '''_grpcClient!.unaryCall<${method.outputType}>(
+    return '''_transport.unaryCall<${method.outputType}>(
       '${service.name}',
       '$methodName',
       request,
+      options: ctx.options,
     )''';
   }
 
