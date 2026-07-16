@@ -396,13 +396,15 @@ class ServiceGenerator {
       ),
     ];
 
-    // For gRPC services, add optional grpcClient parameter
+    // For gRPC services, add optional grpcClient parameter (web-safe GrpcClient
+    // interface; native users adapt their *ServiceClient via GrpcClientAdapter,
+    // web users pass null). It is forwarded to createTransport, never held here.
     if (isGrpc) {
       ctorParams.add(
         Parameter(
           (p) => p
             ..name = 'grpcClient'
-            ..type = refer('GrpcClient')
+            ..type = refer('GrpcClient?')
             ..defaultTo = const Code('null')
             ..named = true,
         ),
@@ -416,7 +418,8 @@ class ServiceGenerator {
     );
     if (isGrpc) {
       body.write(
-        '$serviceFieldName = Unified${service.name}(createTransport(options.endpoint, grpcClient: grpcClient)!, _chain, grpcClient);',
+        'final transport = createTransport(options.endpoint, grpcClient: grpcClient, interceptors: _chain)!;\n'
+        '$serviceFieldName = Unified${service.name}(transport, _chain);',
       );
     } else {
       body.write(

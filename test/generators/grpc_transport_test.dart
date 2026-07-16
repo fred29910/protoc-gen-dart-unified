@@ -101,8 +101,9 @@ void main() {
       // Should import GrpcClient from unified_runtime
       expect(content, contains("import 'unified_runtime.dart'"));
 
-      // ApiSdk should pass grpcClient to createTransport (intermediate state, fixed in 1.5)
-      expect(content, contains('grpcClient:'));
+      // ApiSdk should pass grpcClient to createTransport (web-grpc-isolation, fixed in 1.5)
+      expect(content, contains('createTransport('));
+      expect(content, contains('grpcClient: grpcClient'));
     });
 
     test('generates gRPC adapter for gRPC-only service with mock=true', () {
