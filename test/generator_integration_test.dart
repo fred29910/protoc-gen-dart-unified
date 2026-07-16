@@ -321,6 +321,68 @@ void main() {
           reason: 'should not call _grpcClient directly');
     });
 
+    test('gRPC server stream call delegates to _transport.serverStream', () {
+      // echo.proto fixture: pure gRPC service, no google.api.http annotations.
+      // After web-grpc-isolation, the server streaming call body must route
+      // through _transport.serverStream, not _grpcClient.serverStream.
+      final file = FileDescriptorProto()
+        ..name = 'echo.proto'
+        ..package = 'echo'
+        ..messageType.add(
+          DescriptorProto()
+            ..name = 'EchoRequest'
+            ..field.add(
+              FieldDescriptorProto()
+                ..name = 'message'
+                ..number = 1
+                ..label = FieldDescriptorProto_Label.LABEL_OPTIONAL
+                ..type = FieldDescriptorProto_Type.TYPE_STRING,
+            ),
+        )
+        ..messageType.add(
+          DescriptorProto()
+            ..name = 'EchoResponse'
+            ..field.add(
+              FieldDescriptorProto()
+                ..name = 'message'
+                ..number = 1
+                ..label = FieldDescriptorProto_Label.LABEL_OPTIONAL
+                ..type = FieldDescriptorProto_Type.TYPE_STRING,
+            ),
+        )
+        ..service.add(
+          ServiceDescriptorProto()
+            ..name = 'EchoService'
+            ..method.add(
+              MethodDescriptorProto()
+                ..name = 'EchoStream'
+                ..inputType = '.echo.EchoRequest'
+                ..outputType = '.echo.EchoResponse'
+                ..serverStreaming = true,
+            ),
+        );
+
+      final generator = CodeGenerator();
+      final response = generator.generate(
+        CodeGeneratorRequest(fileToGenerate: ['echo.proto'], protoFile: [file]),
+      );
+
+      expect(response.error, isEmpty);
+      final content = response.file
+          .firstWhere((f) => f.name == 'echo_service.dart')
+          .content;
+
+      // The echoStream method must exist
+      expect(content, contains('Stream<EchoResponse> echoStream('),
+          reason: 'echoStream method should exist');
+      // The server stream call body must delegate to _transport.serverStream
+      expect(content, contains('_transport.serverStream<EchoResponse>'),
+          reason: 'method should delegate to _transport.serverStream');
+      // It must NOT call _grpcClient.serverStream directly
+      expect(content, isNot(contains('_grpcClient.serverStream')),
+          reason: 'should not call _grpcClient directly');
+    });
+
     test('declares FEATURE_PROTO3_OPTIONAL in supportedFeatures', () {
       final generator = CodeGenerator();
       final response = generator.generate(

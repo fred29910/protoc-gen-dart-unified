@@ -349,14 +349,22 @@ class ServiceGenerator {
     ''');
   }
 
-  /// Builds gRPC server streaming body — delegates to _grpcClient.
+  /// Builds gRPC server streaming body — routes through [_transport].
+  ///
+  /// Like the HTTP server-stream body, this is a direct call to
+  /// [_transport.serverStream] (the interceptor chain is Future-based and
+  /// cannot wrap a [Stream], so server streaming is not wrapped). For gRPC
+  /// there is no [google.api.http] rule, so no [RpcCallOptions] are built and
+  /// [options] is left null — the equivalent of the unary branch's
+  /// `ctx.options` for a gRPC method.
   Code _buildGrpcServerStreamBody(MethodModel method) {
     final methodName = _dartMethodName(method.name);
     return Code('''
-    return _grpcClient!.serverStream<${method.outputType}>(
+    return _transport.serverStream<${method.outputType}>(
       '${service.name}',
       '$methodName',
       request,
+      options: null,
     );
     ''');
   }
