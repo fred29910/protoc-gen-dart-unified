@@ -1,7 +1,7 @@
 # AGENTS.md
 
-**Generated:** 2026-07-15
-**Commit:** `f39e5ae`
+**Generated:** 2026-07-16
+**Commit:** `a78b422`
 **Branch:** `feature/20260626/post-review-fixes-and-optimization`
 
 This file provides guidance to OpenCode when working with code in this repository.
@@ -16,14 +16,14 @@ This file provides guidance to OpenCode when working with code in this repositor
 |------|----------|-------|
 | Plugin entry | `bin/protoc_gen_dart_unified.dart` | Reads stdin, writes stdout |
 | Code generation | `lib/src/generators/service_generator.dart` | 497 LOC, generates interface + impl + SDK |
-| Inline runtime generation | `lib/src/generators/runtime_inline_generator.dart` | 858 LOC template, emits self-contained `unified_runtime.dart` |
+| Inline runtime generation | `lib/src/generators/runtime_inline_generator.dart` | ~921 LOC template, emits self-contained `unified_runtime.dart` |
 | Mock generation | `lib/src/generators/mock_service_generator.dart` | Mock client for testing |
 | Example test scaffold | `lib/src/generators/example_test_generator.dart` | Example test generator |
 | Proto parsing | `lib/src/parser/descriptor_parser.dart` | FileDescriptorProto → ServiceModel |
 | HTTP extension registry | `lib/src/parser/extension_registry.dart` | google.api.http custom option |
 | Runtime transport | `lib/src/runtime/` | 20 files — transport, interceptors, SSE, gRPC client |
 | HTTP mapping | `lib/src/builder/` | Path resolution, body mapping, query flattening |
-| Data models | `lib/src/model/` | ServiceModel, MethodModel, HttpRuleModel, etc. |
+| Data models | `lib/src/model/` | ServiceModel, MethodModel, HttpRuleModel, MessageModel, FieldModel, EnumModel |
 | Integration test | `test/generator_integration_test.dart` | Programmatic CodeGeneratorRequest |
 | Golden tests | `test/golden/golden_test.dart` | Expected output snapshots |
 | Golden fixtures | `test/fixtures/` | Proto definitions for tests |
@@ -99,12 +99,12 @@ lib/
     │   ├── descriptor_parser.dart        # Parses FileDescriptorProto → ServiceModel list
     │   ├── extension_registry.dart       # Registers google.api.http extension for custom option reading
     │   └── google/api/                   # Pre-generated protobuf descriptors for annotations
-    ├── model/                            # Internal models: ServiceModel, MethodModel, HttpRuleModel, MessageModel, FieldModel
+    ├── model/                            # Internal models: ServiceModel, MethodModel, HttpRuleModel, MessageModel, FieldModel, EnumModel
     ├── builder/                          # HTTP mapping logic: path resolution, body mapping, query flattening
     ├── generators/
     │   ├── generator_registry.dart       # Pluggable generator dispatch (defaultRegistry wires 4 generators)
     │   ├── service_generator.dart        # Main generator: abstract interface + Unified impl + ApiSdk
-    │   ├── runtime_inline_generator.dart # Inline runtime generation, emits unified_runtime.dart
+    │       ├── runtime_inline_generator.dart # Inline runtime generation (~921 LOC), emits unified_runtime.dart
     │   ├── mock_service_generator.dart   # Mock client generator
     │   └── example_test_generator.dart   # Example test scaffold generator
     └── runtime/                          # Runtime transport layer: Transport, ClientOptions, RpcInterceptor, etc.
@@ -159,7 +159,22 @@ Defined in `analysis_options.yaml`:
 - `prefer_const_declarations`
 - `avoid_print`
 - `unnecessary_late`
-- Strict casts, inference, and raw types enabled
+- Strict casts, inference, and raw types enabled (`strict-casts`, `strict-inference`, `strict-raw-types`)
+
+## CODE MAP
+
+| Symbol | Type | Location | Role |
+|--------|------|----------|------|
+| `CodeGenerator.generate` | method | `lib/src/generator.dart:13` | Entry: validate → parse → dispatch registry → assemble files |
+| `DescriptorParser.parse` | method | `lib/src/parser/descriptor_parser.dart:15` | FileDescriptorProto → `List<ServiceModel>` |
+| `InputValidator.validate` | method | `lib/src/parser/input_validator.dart:35` | Structural checks → `List<ValidationError>` (no mutation) |
+| `GeneratorRegistry.defaultRegistry` | method | `lib/src/generators/generator_registry.dart` | Single dispatch point wiring 4 generators |
+| `ServiceGenerator` | class | `lib/src/generators/service_generator.dart` | Abstract interface + `Unified<Service>` + `ApiSdk` |
+| `RuntimeInlineGenerator.generate` | method | `lib/src/generators/runtime_inline_generator.dart` | Emits self-contained `unified_runtime.dart` |
+| `Transport.executeWithInterceptors` | method | `lib/src/runtime/transport.dart:28` | Generic interceptor-chain executor (base) |
+| `RpcInterceptor` | class | `lib/src/runtime/rpc_interceptor.dart:32` | Abstract interceptor interface |
+| `GrpcTransport` / `GrpcClient` | class | `lib/src/runtime/transport_native.dart:239`, `grpc_client.dart` | gRPC transport delegates to pbgrpc via `GrpcClient` |
+| `HttpMapper.mapPath` / `flattenQuery` / `resolveBody` | method | `lib/src/builder/http_mapper.dart` | Path/body/query template → codegen inputs |
 
 ## Interceptor Architecture
 
@@ -174,7 +189,7 @@ Defined in `analysis_options.yaml`:
 - `Transport.executeWithInterceptors()` — Base method for interceptor chain execution
 - `ClientOptions.buildInterceptorChain()` — Constructs the effective interceptor chain
 
-**Important:** The generated `Unified<Service>` class manages its own interceptor chain (not `Transport`). The `Transport.executeWithInterceptors()` is called by `HttpTransport`/`GrpcTransport` with empty interceptors by default.
+**Important:** The generated `Unified<Service>` class manages its own interceptor chain (not `Transport`). The `Transport.executeWithInterceptors()` is called by `HttpTransport`/`GrpcTransport` with empty interceptors by default. `GrpcTransport` wraps a `GrpcClient` (which delegates to the official `*.pbgrpc.dart` `*ServiceClient`) — its `_client` field is now wired (no longer reserved/throws).
 
 ## Code Generation Details
 
@@ -198,5 +213,5 @@ UPDATE_GOLDENS=1 dart test test/golden/golden_test.dart
 
 - Generated code includes `// ignore_for_file: type=lint` to suppress lint rules in output
 - `DartEmitter.scoped(useNullSafetySyntax: true)` is required for proper null safety syntax in generated code
-- `GrpcTransport._client` field is reserved for future use (currently throws `UnimplementedError`)
+- `GrpcTransport` delegates to a `GrpcClient` (wrapping the official `*.pbgrpc.dart` `*ServiceClient`); its `_client` field is wired, not reserved
 - `ApiSdk` constructor body computes interceptor chain via `ClientOptions.buildInterceptorChain()` and passes it to the service implementation

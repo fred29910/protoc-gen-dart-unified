@@ -13,7 +13,7 @@ Code generation core — 5 files (4 generators + pluggable registry) that produc
 generators/
 ├── generator_registry.dart       # 148 LOC — pluggable dispatch, defaultRegistry()
 ├── service_generator.dart        # 497 LOC — interface + Unified impl + ApiSdk
-├── runtime_inline_generator.dart # 858 LOC template — emits unified_runtime.dart
+├── runtime_inline_generator.dart # ~921 LOC template — emits unified_runtime.dart
 ├── mock_service_generator.dart   # 60 LOC — mockito-based Mock class
 └── example_test_generator.dart   # 108 LOC — test scaffold with stubs
 ```
