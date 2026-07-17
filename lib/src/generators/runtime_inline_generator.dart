@@ -5,6 +5,8 @@
 /// `lib/src/runtime/` sources, with only `package:dio/dio.dart` as an
 /// external dependency. gRPC-only types and http_status_mapping are excluded
 /// (dead / gRPC-only code).
+import '../model/service_model.dart';
+
 class RuntimeInlineGenerator {
   /// Returns the complete source code for `unified_runtime.dart`.
   String generate() {
@@ -885,8 +887,12 @@ Transport? createTransport(
 
   /// Returns the source for `unified_transport_native.dart`.
   ///
-  /// Native-only transport factory: gRPC ([GrpcTransport] + [GrpcClientAdapter])
-  /// when a [GrpcClient] is available, otherwise HTTP ([HttpTransport]).
+  /// Native-only transport factory: gRPC ([GrpcTransport] delegating to a
+  /// [GrpcClient]) when a [GrpcClient] is available, otherwise HTTP
+  /// ([HttpTransport]). This file is GLOBAL and always present so the
+  /// conditional-import factory (`unified_transport_factory.dart`) keeps a
+  /// stable import target. Per-service gRPC method dispatch lives in the
+  /// generated `unified_transport_adapter_{service}.dart` files instead.
   String generateTransportNative() {
     return '''
 // GENERATED_BY: protoc-gen-dart-unified@0.2.0
@@ -896,57 +902,12 @@ import 'dart:async';
 import 'package:grpc/grpc.dart';
 import 'unified_runtime.dart';
 
-/// Adapts a generated `*ServiceClient` (from `*pbgrpc.dart`) to the [GrpcClient]
-/// interface consumed by [GrpcTransport].
-///
-/// The wrapped client is stored as `dynamic` so this file compiles without a
-/// compile-time dependency on the generated service stubs; the actual method
-/// dispatch is performed by the generated client at runtime.
-class GrpcClientAdapter implements GrpcClient {
-  final dynamic _client;
-
-  GrpcClientAdapter(this._client);
-
-  @override
-  Future<T> unaryCall<T>(
-    String serviceName,
-    String methodName,
-    Object request, {
-    RpcCallOptions? options,
-  }) {
-    return _client.unaryCall<T>(
-      serviceName,
-      methodName,
-      request,
-      options: _toCallOptions(options),
-    );
-  }
-
-  @override
-  Stream<T> serverStream<T>(
-    String serviceName,
-    String methodName,
-    Object request, {
-    RpcCallOptions? options,
-  }) {
-    return _client.serverStream<T>(
-      serviceName,
-      methodName,
-      request,
-      options: _toCallOptions(options),
-    );
-  }
-
-  CallOptions? _toCallOptions(RpcCallOptions? options) {
-    if (options == null) return null;
-    return CallOptions(
-      metadata: options.headers ?? const {},
-      timeout: options.timeout,
-    );
-  }
-}
-
 /// gRPC transport implementation that delegates to a [GrpcClient].
+///
+/// The [GrpcClient] is supplied by the generated per-service adapter
+/// (`unified_transport_adapter_{service}.dart`), which wraps the real
+/// generated `*ServiceClient`. This keeps the global native file free of any
+/// per-service / generated gRPC client dependency (web-safety red line).
 class GrpcTransport extends Transport {
   final GrpcClient _client;
   final List<RpcInterceptor> _interceptors;
@@ -977,8 +938,21 @@ class GrpcTransport extends Transport {
     Object request,
     RpcCallOptions? options,
   ) async {
-    return _client.unaryCall<T>(serviceName, methodName, request,
-        options: options);
+    final rf = _client.unaryCall<T>(
+      serviceName,
+      methodName,
+      request,
+      options: options,
+    );
+    // Bridge the unified cancel token onto the gRPC ResponseFuture.
+    if (options?.cancelToken != null) {
+      options!.cancelToken!.onCancel(() => (rf as dynamic).cancel());
+    }
+    try {
+      return await rf;
+    } on GrpcError catch (e) {
+      throw _mapGrpcError(e);
+    }
   }
 
   @override
@@ -988,9 +962,43 @@ class GrpcTransport extends Transport {
     Object request, {
     RpcCallOptions? options,
   }) {
-    return _client.serverStream<T>(serviceName, methodName, request,
-        options: options);
+    final stream = _client.serverStream<T>(
+      serviceName,
+      methodName,
+      request,
+      options: options,
+    );
+    return stream.handleError(
+      (Object e) {
+        if (e is GrpcError) throw _mapGrpcError(e);
+      },
+      test: (e) => e is GrpcError,
+    );
   }
+}
+
+/// Maps a gRPC [GrpcError] to the unified [ApiException] hierarchy.
+ApiException _mapGrpcError(GrpcError e) {
+  final message = e.message ?? 'gRPC error';
+  return switch (e.code) {
+    1 => CancelledException(message),
+    2 => UnknownException(message),
+    3 => InvalidArgumentException(message),
+    4 => RpcTimeoutException(message),
+    5 => NotFoundException(message),
+    6 => AlreadyExistsException(message),
+    7 => PermissionDeniedException(message),
+    8 => ResourceExhaustedException(message),
+    9 => FailedPreconditionException(message),
+    10 => AbortedException(message),
+    11 => OutOfRangeException(message),
+    12 => UnimplementedException(message),
+    13 => InternalServerException(message),
+    14 => UnavailableException(message),
+    15 => DataLossException(message),
+    16 => UnauthenticatedException(message),
+    _ => InternalServerException(message),
+  };
 }
 
 Transport? createTransport(
@@ -1010,6 +1018,104 @@ Transport? createTransport(
   return HttpTransport(endpoint, interceptors: interceptors);
 }
 ''';
+  }
+
+  /// Returns the source for `unified_transport_adapter_{service}.dart`.
+  ///
+  /// Per-service gRPC adapter: wraps the generated `*ServiceClient` (from
+  /// `*pbgrpc.dart`) and implements [GrpcClient] by dispatching each method
+  /// name to the matching named client method. This file carries the only
+  /// pbgrpc import in the generated output, keeping the global runtime and
+  /// the per-service SDK files web-safe.
+  String generateTransportAdapter(ServiceModel service) {
+    final serviceName = service.name;
+    final protoBase = service.protoFileName.replaceAll('.proto', '');
+    final clientClass = '${serviceName}Client';
+    final adapterClass = '${serviceName}GrpcAdapter';
+
+    final unaryCases = StringBuffer();
+    final streamCases = StringBuffer();
+    for (final method in service.methods) {
+      final camel = _dartMethodName(method.name);
+      final inputType = method.inputType;
+      if (method.isServerStreaming) {
+        streamCases.writeln('    case \'$camel\':');
+        streamCases.writeln(
+          '      return _client.$camel(request as $inputType, '
+          'options: callOptions) as Stream<T>;',
+        );
+      } else {
+        unaryCases.writeln('    case \'$camel\':');
+        unaryCases.writeln(
+          '      return _client.$camel(request as $inputType, '
+          'options: callOptions) as Future<T>;',
+        );
+      }
+    }
+
+    return '''
+// GENERATED_BY: protoc-gen-dart-unified@0.2.0
+// DO NOT EDIT: Per-service gRPC adapter for the unified RPC SDK.
+
+import 'dart:async';
+import 'package:grpc/grpc.dart';
+import 'unified_runtime.dart';
+import '$protoBase.pbgrpc.dart';
+
+/// Adapts the generated [$clientClass] to the [GrpcClient] interface consumed
+/// by [GrpcTransport]. Pass an instance to [ApiSdk] via the `grpcClient`
+/// parameter on native platforms.
+class $adapterClass implements GrpcClient {
+  final $clientClass _client;
+
+  $adapterClass(this._client);
+
+  @override
+  Future<T> unaryCall<T>(
+    String serviceName,
+    String methodName,
+    Object request, {
+    RpcCallOptions? options,
+  }) {
+    final callOptions = _toCallOptions(options);
+    switch (methodName) {
+$unaryCases
+      default:
+        throw ArgumentError('Unknown method: \$methodName');
+    }
+  }
+
+  @override
+  Stream<T> serverStream<T>(
+    String serviceName,
+    String methodName,
+    Object request, {
+    RpcCallOptions? options,
+  }) {
+    final callOptions = _toCallOptions(options);
+    switch (methodName) {
+$streamCases
+      default:
+        throw ArgumentError('Unknown method: \$methodName');
+    }
+  }
+}
+
+/// Maps unified [RpcCallOptions] to gRPC [CallOptions].
+CallOptions _toCallOptions(RpcCallOptions? options) {
+  if (options == null) return CallOptions();
+  return CallOptions(
+    metadata: options.headers ?? const {},
+    timeout: options.timeout,
+  );
+}
+''';
+  }
+
+  /// Converts a proto PascalCase name to a Dart camelCase name.
+  String _dartMethodName(String protoName) {
+    if (protoName.isEmpty) return protoName;
+    return protoName[0].toLowerCase() + protoName.substring(1);
   }
 
   /// Returns the source for `unified_transport_web.dart`.
