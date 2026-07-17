@@ -174,6 +174,18 @@ class GeneratorRegistry {
       fileNameFn: (_) => 'unified_transport_stub.dart',
     ));
 
+    // Per-service gRPC adapter: wraps the generated `*ServiceClient` from
+    // `*pbgrpc.dart` and implements `GrpcClient`. Emitted once per service so
+    // native users can wire real gRPC calls without polluting the web-safe
+    // service SDK files (approach A1: web/gRPC isolation, O-C correction).
+    registry.register(GeneratorEntry(
+      name: 'TransportAdapter',
+      scope: GeneratorScope.perService,
+      serviceGenerator: (service) =>
+          RuntimeInlineGenerator().generateTransportAdapter(service),
+      fileNameFn: (name) => 'unified_transport_adapter_$name.dart',
+    ));
+
     return registry;
   }
 }

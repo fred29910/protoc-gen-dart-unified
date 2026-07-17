@@ -1,6 +1,8 @@
 import 'dart:io';
 
 import 'package:protoc_gen_dart_unified/src/generators/runtime_inline_generator.dart';
+import 'package:protoc_gen_dart_unified/src/model/service_model.dart';
+import 'package:protoc_gen_dart_unified/src/model/method_model.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -169,13 +171,56 @@ dependencies:
         expect(code, contains('Transport? createTransport('));
       });
 
-      test('generateTransportNative() contains gRPC transport + adapter', () {
+      test('generateTransportNative() contains gRPC transport + mapping (no adapter)', () {
         final code = generator.generateTransportNative();
 
         expect(code, contains("import 'package:grpc/grpc.dart'"));
         expect(code, contains('class GrpcTransport'));
-        expect(code, contains('class GrpcClientAdapter'));
         expect(code, contains('Transport? createTransport('));
+        expect(code, contains('_mapGrpcError'));
+        // The per-service adapter lives in its own file, NOT the global native
+        // file. The native file must stay free of pbgrpc imports and the
+        // RpcCallOptions->CallOptions mapping (that lives in the adapter).
+        expect(code, isNot(contains('GrpcAdapter')));
+        expect(code, isNot(contains('pbgrpc')));
+        expect(code, isNot(contains('_toCallOptions')));
+      });
+
+      test('generateTransportAdapter() emits per-service gRPC adapter', () {
+        final service = ServiceModel(
+          name: 'EchoService',
+          protoFileName: 'echo.proto',
+          methods: [
+            MethodModel(
+              name: 'Echo',
+              inputType: 'EchoRequest',
+              outputType: 'EchoResponse',
+              isServerStreaming: false,
+              isClientStreaming: false,
+            ),
+            MethodModel(
+              name: 'EchoStream',
+              inputType: 'EchoRequest',
+              outputType: 'EchoResponse',
+              isServerStreaming: true,
+              isClientStreaming: false,
+            ),
+          ],
+        );
+        final code = generator.generateTransportAdapter(service);
+
+        expect(code, contains("import 'package:grpc/grpc.dart'"));
+        expect(code, contains("import 'echo.pbgrpc.dart'"));
+        expect(
+          code,
+          contains('class EchoServiceGrpcAdapter implements GrpcClient'),
+        );
+        // Unary + server-streaming methods each get a switch case.
+        expect(code, contains("case 'echo':"));
+        expect(code, contains("case 'echoStream':"));
+        expect(code, contains('_toCallOptions'));
+        // Adapter must NOT pull in the HTTP transport / dio.
+        expect(code, isNot(contains('package:dio/dio.dart')));
       });
 
       test('generateTransportWeb() is grpc/dart:io free', () {

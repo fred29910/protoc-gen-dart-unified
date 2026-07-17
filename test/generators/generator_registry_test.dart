@@ -33,14 +33,14 @@ void main() {
       expect(global, isEmpty);
     });
 
-    test('defaultRegistry with mockEnabled=true produces 8 entries', () {
+    test('defaultRegistry with mockEnabled=true produces 9 entries', () {
       final registry = GeneratorRegistry.defaultRegistry(mockEnabled: true);
-      expect(registry.entries, hasLength(8));
+      expect(registry.entries, hasLength(9));
     });
 
-    test('defaultRegistry with mockEnabled=false produces 6 entries', () {
+    test('defaultRegistry with mockEnabled=false produces 7 entries', () {
       final registry = GeneratorRegistry.defaultRegistry(mockEnabled: false);
-      expect(registry.entries, hasLength(6));
+      expect(registry.entries, hasLength(7));
     });
 
     test('per-service generator produces expected file name', () {
@@ -72,8 +72,13 @@ void main() {
       final registry = GeneratorRegistry.defaultRegistry(mockEnabled: false);
       final results = registry.generateForService(testService, 'test_service');
       final fileNames = results.map((r) => r.$1).toList();
-      expect(fileNames, hasLength(1));
-      expect(fileNames.first, equals('test_service.dart'));
+      // Service + per-service gRPC adapter (mock/example_test excluded).
+      expect(fileNames, hasLength(2));
+      expect(fileNames, contains('test_service.dart'));
+      expect(
+        fileNames,
+        contains('unified_transport_adapter_test_service.dart'),
+      );
     });
 
     test('supports custom generator registration', () {
@@ -104,7 +109,7 @@ void main() {
 
     test('setEnabled disables an entry by name', () {
       final registry = GeneratorRegistry.defaultRegistry(mockEnabled: true);
-      expect(registry.enabledEntries(), hasLength(8));
+      expect(registry.enabledEntries(), hasLength(9));
 
       final found = registry.setEnabled('Mock', false);
       expect(found, isTrue);
@@ -141,11 +146,11 @@ void main() {
 
     test('enabledEntries returns only enabled entries', () {
       final registry = GeneratorRegistry.defaultRegistry(mockEnabled: true);
-      expect(registry.enabledEntries(), hasLength(8));
+      expect(registry.enabledEntries(), hasLength(9));
 
       registry.setEnabled('Mock', false);
       registry.setEnabled('ExampleTest', false);
-      expect(registry.enabledEntries(), hasLength(6));
+      expect(registry.enabledEntries(), hasLength(7));
     });
   });
 }

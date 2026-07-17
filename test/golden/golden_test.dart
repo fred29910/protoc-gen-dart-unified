@@ -63,9 +63,10 @@ void main() {
       );
 
       expect(response.error, isEmpty);
-      // Default mock=true generates 8 files: 5 runtime (unified_runtime +
-      // unified_transport_{factory,native,web,stub}) + service + mock + example_test
-      expect(response.file, hasLength(8));
+      // Default mock=true generates 9 files: 5 runtime (unified_runtime +
+      // unified_transport_{factory,native,web,stub}) + service + mock +
+      // example_test + adapter
+      expect(response.file, hasLength(9));
 
       // Verify service file
       final serviceFile = response.file.firstWhere(
@@ -179,9 +180,10 @@ void main() {
       );
 
       expect(response.error, isEmpty);
-      // mock=false generates 6 files: the 5 runtime files (emitted first, in
-      // reverse registration order due to files.insert(0, ...)) + the service file.
-      expect(response.file, hasLength(6));
+      // mock=false generates 7 files: the 5 runtime files (emitted first, in
+      // reverse registration order due to files.insert(0, ...)) + the service
+      // file + the per-service adapter file.
+      expect(response.file, hasLength(7));
       expect(
         response.file.map((f) => f.name).toSet(),
         equals({
@@ -191,6 +193,7 @@ void main() {
           'unified_transport_factory.dart',
           'unified_runtime.dart',
           'user_service.dart',
+          'unified_transport_adapter_user_service.dart',
         }),
       );
     });
