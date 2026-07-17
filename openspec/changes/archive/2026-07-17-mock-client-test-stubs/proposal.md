@@ -4,7 +4,7 @@
 
 ## What Changes
 
-- 新增 `MockServiceGenerator`：为每个服务生成 `*_mock.dart` 文件，包含 `@GenerateNiceMocks` 注解的 Mock 类
+- 新增 `MockServiceGenerator`：为每个服务生成 `*_mock.dart` 文件，包含 `class MockXxxService extends Mock implements XxxService {}`（mockito 虚拟 mock，无需 build_runner）
 - 新增 `ExampleTestGenerator`：为每个服务生成 `*_example_test.dart` 文件，包含基础测试用例模板
 - 修改 `CodeGenerator`（`lib/src/generator.dart`）：在生成 `*_service.dart` 的同时输出 `*_mock.dart` 和 `*_example_test.dart`
 - 新增 golden 测试覆盖 Mock 和示例测试文件的生成
@@ -14,7 +14,7 @@
 
 ### New Capabilities
 
-- `mock-client-generation`：基于 mockito `@GenerateNiceMocks` 自动生成 Mock 客户端类，支持 Unary/Server Streaming 方法
+- `mock-client-generation`：基于 mockito `Mock` 基类（`extends Mock implements XxxService`）自动生成 Mock 客户端类，支持 Unary/Server Streaming 方法（无需 `@GenerateNiceMocks` / build_runner）
 - `example-test-stub-generation`：生成示例测试文件，包含 test 依赖导入、group 结构、基础 stub 模板
 
 ### Modified Capabilities
@@ -28,3 +28,5 @@
 - **新增 golden 文件**：`test/goldens/user_service_mock.dart.golden`、`test/goldens/user_service_example_test.dart.golden`
 - **新增 spec 目录**：`openspec/changes/mock-client-test-stubs/specs/mock-client-generation/spec.md`、`openspec/changes/mock-client-test-stubs/specs/example-test-stub-generation/spec.md`
 - **依赖**：不新增运行时依赖；生成的 mock 文件依赖 `mockito`（由用户项目自行添加）
+
+> **注意（文件计数）**：生成的文件总数受后续已归档变更 `web-grpc-isolation` 影响 —— 每个服务额外生成 per-service `adapter` 文件（详见 `openspec/changes/archive/2026-07-17-web-grpc-isolation/specs/grpc-code-generation/spec.md`）。本变更 golden 测试当前期望 9 个文件（5 runtime + service + mock + example_test + adapter）。`adapter` 不由本变更生成，此处仅作交叉引用。

@@ -1,5 +1,3 @@
-## ADDED Requirements
-
 ### Requirement: Parser extracts oneof metadata from DescriptorProto
 
 The system SHALL extract `oneof_decl` and `oneof_index` from `DescriptorProto` and store the oneof group name in `FieldModel.oneofName`.

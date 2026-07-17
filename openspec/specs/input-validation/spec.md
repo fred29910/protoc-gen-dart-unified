@@ -1,5 +1,3 @@
-## ADDED Requirements
-
 ### Requirement: Method name uniqueness validation
 
 The system SHALL validate that no two methods within the same service share the same name (case-insensitive for Dart compatibility).
@@ -43,8 +41,6 @@ The system SHALL detect when proto identifiers conflict with Dart reserved words
 #### Scenario: field name is a Dart reserved word
 - **WHEN** a proto field is named `class`, `import`, `default`, or other Dart reserved words
 - **THEN** the generator SHALL mangle the name (e.g., `class_` suffix) or report an error
-
-## MODIFIED Requirements
 
 ### Requirement: Error message granularity (previously informal)
 

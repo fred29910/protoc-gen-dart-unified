@@ -32,3 +32,11 @@
 - [x] 5.2 运行 `dart analyze`，确保零错误
 - [x] 5.3 验证生成的 mock 文件可被 `dart analyze` 分析通过
 - [x] 5.4 更新 `docs/design.md` Phase 4 状态为已完成
+
+## Reconciliation Note (post-implementation)
+
+实现后已重构（提交 f34e0e1 "simplify mock generator to extend Mock directly"、472c73c "update mock and test generators to import unified_runtime.dart"），以下任务描述与最终代码存在偏差，以当前 spec / design.md 为准：
+
+- 任务 1.1 / 1.4：实际为 `class MockXxxService extends Mock implements XxxService {}`，导入 `package:mockito/mockito.dart`（非 `@GenerateNiceMocks` / `package:mockito/annotations.dart`）
+- 任务 2.3 / 2.4：stub 以**注释模板**生成（非激活的 `when().thenAnswer()`）；示例测试额外导入 `unified_runtime.dart`
+- 文件计数受 `web-grpc-isolation` 影响，golden 期望 9 文件（含 per-service `adapter`，由该已归档变更生成，本变更仅交叉引用）

@@ -1,5 +1,3 @@
-## ADDED Requirements
-
 ### Requirement: Generator registry mechanism
 
 The system SHALL provide a `Map<String, Generator>` registry allowing generators to be registered by key, replacing hardcoded generator instantiation in `CodeGenerator.generate()`.

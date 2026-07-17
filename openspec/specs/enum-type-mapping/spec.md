@@ -1,5 +1,3 @@
-## ADDED Requirements
-
 ### Requirement: Parser extracts EnumDescriptorProto definitions
 
 The system SHALL extract `EnumDescriptorProto` entries from `FileDescriptorProto.enumType` and store them in a new `EnumModel` class.

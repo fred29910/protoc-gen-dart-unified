@@ -1,5 +1,3 @@
-## ADDED Requirements
-
 ### Requirement: GrpcClient type abstraction
 
 The system SHALL introduce a typed abstraction for gRPC clients, replacing the current `dynamic` type for `_grpcClient` in generated `Unified<Service>` implementations.

@@ -1,5 +1,3 @@
-## ADDED Requirements
-
 ### Requirement: Precise map type detection
 
 The system SHALL detect protobuf `map` fields by verifying the field's type is `TYPE_MESSAGE` and its type name corresponds to a message with exactly two fields named `key` and `value`.

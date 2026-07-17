@@ -17,7 +17,7 @@ verification_report: docs/superpowers/reports/2026-06-23-mock-client-test-stubs-
 branch_status: handled
 created_at: 2026-06-23
 verified_at: 2026-06-23
-archived: false
+archived: true
 handoff_context: openspec/changes/mock-client-test-stubs/.comet/handoff/design-context.json
 handoff_hash: 343fbec694b9aa32c4bc6f36ef275a4fb4c5360d4920d8113686ce0e58969eeb
 build_command: /opt/data/flutter/bin/dart test
