@@ -17,6 +17,11 @@ import 'dart:convert';
 import 'dart:math' show pow, Random;
 import 'package:dio/dio.dart';
 
+// Re-export the platform transport factory so service/mock/example files that
+// import this runtime can resolve `createTransport(...)` without knowing about
+// the conditional-import split (approach A1: web/gRPC isolation).
+export 'unified_transport_factory.dart';
+
 // ============================================================
 // Exception Hierarchy
 // ============================================================
@@ -610,77 +615,6 @@ class HttpTransport extends Transport {
   }
 }
 
-/// gRPC transport implementation that delegates to a [GrpcClient].
-///
-/// Uses the [GrpcClient] interface to make actual gRPC calls,
-/// wrapping them with the interceptor chain.
-class GrpcTransport extends Transport {
-  final GrpcClient _client;
-  final List<RpcInterceptor> _interceptors;
-
-  GrpcTransport(this._client, {List<RpcInterceptor> interceptors = const []})
-    : _interceptors = interceptors;
-
-  @override
-  Future<T> unaryCall<T>(
-    String serviceName,
-    String methodName,
-    Object request, {
-    RpcCallOptions? options,
-  }) {
-    return executeWithInterceptors<T>(
-      serviceName,
-      methodName,
-      request,
-      options,
-      _interceptors,
-      (req, opts) => _rawGrpcUnaryCall<T>(serviceName, methodName, req, opts),
-    );
-  }
-
-  /// Core gRPC call without interceptor chain (used as finalCall).
-  Future<T> _rawGrpcUnaryCall<T>(
-    String serviceName,
-    String methodName,
-    Object request,
-    RpcCallOptions? options,
-  ) async {
-    return _client.unaryCall<T>(serviceName, methodName, request,
-        options: options);
-  }
-
-  @override
-  Stream<T> serverStream<T>(
-    String serviceName,
-    String methodName,
-    Object request, {
-    RpcCallOptions? options,
-  }) {
-    return _client.serverStream<T>(serviceName, methodName, request,
-        options: options);
-  }
-}
-
-Transport? createTransport(
-  String endpoint, {
-  GrpcClient? grpcClient,
-  List<RpcInterceptor> interceptors = const [],
-  Protocol protocol = Protocol.auto,
-}) {
-  // Protocol.auto: native defaults to gRPC if grpcClient provided, otherwise HTTP
-  // Protocol.http: always HTTP
-  // Protocol.grpc: gRPC only, requires grpcClient
-  final useGrpc = switch (protocol) {
-    Protocol.grpc => true,
-    Protocol.http => false,
-    Protocol.auto => grpcClient != null,
-  };
-  if (useGrpc && grpcClient != null) {
-    return GrpcTransport(grpcClient, interceptors: interceptors);
-  }
-  return HttpTransport(endpoint, interceptors: interceptors);
-}
-
 // ============================================================
 // SSE Parser
 // ============================================================
@@ -916,6 +850,213 @@ Future<T> withRetry<T>(
   }
   throw lastError ?? Exception('Retry exhausted');
 }
+''';
+  }
+
+  /// Returns the source for `unified_transport_factory.dart`.
+  ///
+  /// A conditional-import dispatcher that selects the platform-specific
+  /// transport factory, mirroring `lib/src/runtime/transport_factory.dart`.
+  /// It imports [unified_runtime] for the shared types so the [Transport]
+  /// returned here is the same type the generated service files use.
+  String generateTransportFactory() {
+    return '''
+// GENERATED_BY: protoc-gen-dart-unified@0.2.0
+// DO NOT EDIT: Platform transport factory dispatcher for the unified RPC SDK.
+
+import 'unified_runtime.dart';
+import 'unified_transport_stub.dart'
+    if (dart.library.io) 'unified_transport_native.dart'
+    if (dart.library.js_interop) 'unified_transport_web.dart' as impl;
+
+Transport? createTransport(
+  String endpoint, {
+  GrpcClient? grpcClient,
+  List<RpcInterceptor> interceptors = const [],
+  Protocol protocol = Protocol.auto,
+}) => impl.createTransport(
+      endpoint,
+      grpcClient: grpcClient,
+      interceptors: interceptors,
+      protocol: protocol,
+    );
+''';
+  }
+
+  /// Returns the source for `unified_transport_native.dart`.
+  ///
+  /// Native-only transport factory: gRPC ([GrpcTransport] + [GrpcClientAdapter])
+  /// when a [GrpcClient] is available, otherwise HTTP ([HttpTransport]).
+  String generateTransportNative() {
+    return '''
+// GENERATED_BY: protoc-gen-dart-unified@0.2.0
+// DO NOT EDIT: Native transport factory (gRPC + HTTP) for the unified RPC SDK.
+
+import 'dart:async';
+import 'package:grpc/grpc.dart';
+import 'unified_runtime.dart';
+
+/// Adapts a generated `*ServiceClient` (from `*pbgrpc.dart`) to the [GrpcClient]
+/// interface consumed by [GrpcTransport].
+///
+/// The wrapped client is stored as `dynamic` so this file compiles without a
+/// compile-time dependency on the generated service stubs; the actual method
+/// dispatch is performed by the generated client at runtime.
+class GrpcClientAdapter implements GrpcClient {
+  final dynamic _client;
+
+  GrpcClientAdapter(this._client);
+
+  @override
+  Future<T> unaryCall<T>(
+    String serviceName,
+    String methodName,
+    Object request, {
+    RpcCallOptions? options,
+  }) {
+    return _client.unaryCall<T>(
+      serviceName,
+      methodName,
+      request,
+      options: _toCallOptions(options),
+    );
+  }
+
+  @override
+  Stream<T> serverStream<T>(
+    String serviceName,
+    String methodName,
+    Object request, {
+    RpcCallOptions? options,
+  }) {
+    return _client.serverStream<T>(
+      serviceName,
+      methodName,
+      request,
+      options: _toCallOptions(options),
+    );
+  }
+
+  CallOptions? _toCallOptions(RpcCallOptions? options) {
+    if (options == null) return null;
+    return CallOptions(
+      metadata: options.headers ?? const {},
+      timeout: options.timeout,
+    );
+  }
+}
+
+/// gRPC transport implementation that delegates to a [GrpcClient].
+class GrpcTransport extends Transport {
+  final GrpcClient _client;
+  final List<RpcInterceptor> _interceptors;
+
+  GrpcTransport(this._client, {List<RpcInterceptor> interceptors = const []})
+    : _interceptors = interceptors;
+
+  @override
+  Future<T> unaryCall<T>(
+    String serviceName,
+    String methodName,
+    Object request, {
+    RpcCallOptions? options,
+  }) {
+    return executeWithInterceptors<T>(
+      serviceName,
+      methodName,
+      request,
+      options,
+      _interceptors,
+      (req, opts) => _rawGrpcUnaryCall<T>(serviceName, methodName, req, opts),
+    );
+  }
+
+  Future<T> _rawGrpcUnaryCall<T>(
+    String serviceName,
+    String methodName,
+    Object request,
+    RpcCallOptions? options,
+  ) async {
+    return _client.unaryCall<T>(serviceName, methodName, request,
+        options: options);
+  }
+
+  @override
+  Stream<T> serverStream<T>(
+    String serviceName,
+    String methodName,
+    Object request, {
+    RpcCallOptions? options,
+  }) {
+    return _client.serverStream<T>(serviceName, methodName, request,
+        options: options);
+  }
+}
+
+Transport? createTransport(
+  String endpoint, {
+  GrpcClient? grpcClient,
+  List<RpcInterceptor> interceptors = const [],
+  Protocol protocol = Protocol.auto,
+}) {
+  final useGrpc = switch (protocol) {
+    Protocol.grpc => true,
+    Protocol.http => false,
+    Protocol.auto => grpcClient != null,
+  };
+  if (useGrpc && grpcClient != null) {
+    return GrpcTransport(grpcClient, interceptors: interceptors);
+  }
+  return HttpTransport(endpoint, interceptors: interceptors);
+}
+''';
+  }
+
+  /// Returns the source for `unified_transport_web.dart`.
+  ///
+  /// Web-only transport factory: HTTP ([HttpTransport]) only. A non-null
+  /// [GrpcClient] is rejected because pure gRPC is unavailable on the web.
+  String generateTransportWeb() {
+    return '''
+// GENERATED_BY: protoc-gen-dart-unified@0.2.0
+// DO NOT EDIT: Web transport factory (HTTP only) for the unified RPC SDK.
+
+import 'unified_runtime.dart';
+
+Transport? createTransport(
+  String endpoint, {
+  GrpcClient? grpcClient,
+  List<RpcInterceptor> interceptors = const [],
+  Protocol protocol = Protocol.auto,
+}) {
+  if (grpcClient != null) {
+    throw UnsupportedError(
+      'Web platform does not support pure gRPC services. Add google.api.http '
+      'annotations to enable HTTP/REST, or use a native platform.',
+    );
+  }
+  return HttpTransport(endpoint, interceptors: interceptors);
+}
+''';
+  }
+
+  /// Returns the source for `unified_transport_stub.dart`.
+  ///
+  /// Fallback for platforms that support neither `dart:io` nor
+  /// `dart.library.js_interop`.
+  String generateTransportStub() {
+    return '''
+// GENERATED_BY: protoc-gen-dart-unified@0.2.0
+// DO NOT EDIT: Stub transport factory for unsupported platforms.
+
+import 'unified_runtime.dart';
+
+Transport? createTransport(
+  String endpoint, {
+  GrpcClient? grpcClient,
+  List<RpcInterceptor> interceptors = const [],
+  Protocol protocol = Protocol.auto,
+}) => throw UnsupportedError('Platform not supported');
 ''';
   }
 }
