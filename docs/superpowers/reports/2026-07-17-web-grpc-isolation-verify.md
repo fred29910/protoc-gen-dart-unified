@@ -71,9 +71,20 @@ no design-doc contradiction remains.
 
 ## Branch Handling
 
-Pending user decision (Step 3): local merge / PR / keep / discard.
+**Resolved**: 用户选择「本地合并到 main」。
+- `feature/20260716/web-grpc-isolation` → `git merge --no-ff` 合并至 `main`（commit `10c6ac5`）
+- 合并后在 `main` 重新运行 `dart test` → **176 passed**（0 failures）确认无回归
+- 分支已删除（`git branch -d`）
+- `branch_status: handled`
+
+## 文档一致性（追加）
+
+- `docs/architecture.md` 在本次 verify 前已校正提交 `f9dc94b`，与真实代码对齐：
+  GeneratorRegistry 9 entry（mock 开启）/ 7 entry（关闭）、`TransportNative` 为 global、
+  新增 `TransportAdapter`（perService，输出 `unified_transport_adapter_{name}.dart`）。
+  文档描述与实现一致。
 
 ## Conclusion
 
 All full-verification checks PASS. No CRITICAL or IMPORTANT failures. The change
-is ready for archive after branch handling.
+is ready for archive.
