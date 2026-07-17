@@ -1,8 +1,8 @@
 # AGENTS.md
 
-**Generated:** 2026-07-16
-**Commit:** `a78b422`
-**Branch:** `feature/20260626/post-review-fixes-and-optimization`
+**Generated:** 2026-07-17
+**Commit:** `10a7495`
+**Branch:** `main`
 
 This file provides guidance to OpenCode when working with code in this repository.
 
@@ -15,8 +15,8 @@ This file provides guidance to OpenCode when working with code in this repositor
 | Task | Location | Notes |
 |------|----------|-------|
 | Plugin entry | `bin/protoc_gen_dart_unified.dart` | Reads stdin, writes stdout |
-| Code generation | `lib/src/generators/service_generator.dart` | 497 LOC, generates interface + impl + SDK |
-| Inline runtime generation | `lib/src/generators/runtime_inline_generator.dart` | ~921 LOC template, emits self-contained `unified_runtime.dart` |
+| Code generation | `lib/src/generators/service_generator.dart` | 457 LOC, generates interface + impl + SDK |
+| Inline runtime generation | `lib/src/generators/runtime_inline_generator.dart` | 1168 LOC template, emits self-contained `unified_runtime.dart` |
 | Mock generation | `lib/src/generators/mock_service_generator.dart` | Mock client for testing |
 | Example test scaffold | `lib/src/generators/example_test_generator.dart` | Example test generator |
 | Proto parsing | `lib/src/parser/descriptor_parser.dart` | FileDescriptorProto → ServiceModel |
@@ -102,9 +102,9 @@ lib/
     ├── model/                            # Internal models: ServiceModel, MethodModel, HttpRuleModel, MessageModel, FieldModel, EnumModel
     ├── builder/                          # HTTP mapping logic: path resolution, body mapping, query flattening
     ├── generators/
-    │   ├── generator_registry.dart       # Pluggable generator dispatch (defaultRegistry wires 4 generators)
+    │   ├── generator_registry.dart       # Pluggable generator dispatch (defaultRegistry wires 9 entries: 7 when mock disabled)
     │   ├── service_generator.dart        # Main generator: abstract interface + Unified impl + ApiSdk
-    │       ├── runtime_inline_generator.dart # Inline runtime generation (~921 LOC), emits unified_runtime.dart
+    │       ├── runtime_inline_generator.dart # Inline runtime generation (1168 LOC), emits unified_runtime.dart
     │   ├── mock_service_generator.dart   # Mock client generator
     │   └── example_test_generator.dart   # Example test scaffold generator
     └── runtime/                          # Runtime transport layer: Transport, ClientOptions, RpcInterceptor, etc.
@@ -168,9 +168,9 @@ Defined in `analysis_options.yaml`:
 | `CodeGenerator.generate` | method | `lib/src/generator.dart:13` | Entry: validate → parse → dispatch registry → assemble files |
 | `DescriptorParser.parse` | method | `lib/src/parser/descriptor_parser.dart:15` | FileDescriptorProto → `List<ServiceModel>` |
 | `InputValidator.validate` | method | `lib/src/parser/input_validator.dart:35` | Structural checks → `List<ValidationError>` (no mutation) |
-| `GeneratorRegistry.defaultRegistry` | method | `lib/src/generators/generator_registry.dart` | Single dispatch point wiring 4 generators |
+| `GeneratorRegistry.defaultRegistry` | method | `lib/src/generators/generator_registry.dart` | Single dispatch point wiring 9 entries (7 when mock disabled) |
 | `ServiceGenerator` | class | `lib/src/generators/service_generator.dart` | Abstract interface + `Unified<Service>` + `ApiSdk` |
-| `RuntimeInlineGenerator.generate` | method | `lib/src/generators/runtime_inline_generator.dart` | Emits self-contained `unified_runtime.dart` |
+| `RuntimeInlineGenerator.generate` | method | `lib/src/generators/runtime_inline_generator.dart` | Emits self-contained `unified_runtime.dart` (1168 LOC template) |
 | `Transport.executeWithInterceptors` | method | `lib/src/runtime/transport.dart:28` | Generic interceptor-chain executor (base) |
 | `RpcInterceptor` | class | `lib/src/runtime/rpc_interceptor.dart:32` | Abstract interceptor interface |
 | `GrpcTransport` / `GrpcClient` | class | `lib/src/runtime/transport_native.dart:239`, `grpc_client.dart` | gRPC transport delegates to pbgrpc via `GrpcClient` |

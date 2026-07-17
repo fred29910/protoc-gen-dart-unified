@@ -1,19 +1,19 @@
 # Code Generators
 
-**Generated:** 2026-07-15
+**Generated:** 2026-07-17
 **Parent:** `AGENTS.md` (root)
 
 ## OVERVIEW
 
-Code generation core — 5 files (4 generators + pluggable registry) that produce service files, mocks, example tests, and the self-contained runtime. `code_builder` + `DartFormatter` stack. ~1670 LOC combined.
+Code generation core — 5 files (4 generators + pluggable registry) that produce service files, mocks, example tests, and the self-contained runtime. `code_builder` + `DartFormatter` stack. ~2180 LOC combined.
 
 ## STRUCTURE
 
 ```
 generators/
-├── generator_registry.dart       # 148 LOC — pluggable dispatch, defaultRegistry()
-├── service_generator.dart        # 497 LOC — interface + Unified impl + ApiSdk
-├── runtime_inline_generator.dart # ~921 LOC template — emits unified_runtime.dart
+├── generator_registry.dart       # 192 LOC — pluggable dispatch, defaultRegistry() wires 9 entries (7 when mock off)
+├── service_generator.dart        # 457 LOC — interface + Unified impl + ApiSdk
+├── runtime_inline_generator.dart # 1168 LOC template — emits unified_runtime.dart + transport set + adapter
 ├── mock_service_generator.dart   # 60 LOC — mockito-based Mock class
 └── example_test_generator.dart   # 108 LOC — test scaffold with stubs
 ```
@@ -29,7 +29,7 @@ generators/
 | Inline runtime emission | `runtime_inline_generator.dart` | Single `generate()` method returning full source string |
 | Mock generation | `mock_service_generator.dart` | Extends Mockito's Mock, implements service |
 | Example test generation | `example_test_generator.dart` | group/test per method with mockito stubs |
-| Generator dispatch | `generator_registry.dart` | Pluggable registry; `defaultRegistry` wires Service/Mock/ExampleTest/RuntimeInline |
+| Generator dispatch | `generator_registry.dart` | Pluggable registry; `defaultRegistry` wires Service/Mock/ExampleTest/RuntimeInline + 4 transport files + per-service adapter (9 entries; 7 with mock off) |
 
 ## CONVENTIONS
 

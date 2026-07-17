@@ -1,6 +1,6 @@
 # Runtime Transport Layer
 
-**Generated:** 2026-07-15
+**Generated:** 2026-07-17
 **Parent:** `AGENTS.md` (root)
 
 ## OVERVIEW
@@ -29,8 +29,8 @@ runtime/
 | Concept | File | Notes |
 |---------|------|-------|
 | Transport abstraction | `transport.dart` | unaryCall + serverStream + executeWithInterceptors |
-| Native HTTP client | `transport_native.dart` | Dio-based, 290 lines, SSE via dio ResponseType.stream |
-| Web HTTP client | `transport_web.dart` | http package, conditional import |
+| Native HTTP client | `transport_native.dart` | Dio-based, 284 lines, SSE via dio ResponseType.stream |
+| Web HTTP client | `transport_web.dart` | Dio-based, conditional import; server-streaming throws UnimplementedError (Phase 3) |
 | Interceptor chain building | `client_options.dart` | tracing → user → retry order |
 | SSE parsing | `sse_parser.dart` | Server-Sent Events protocol |
 | Auth support | `auth_interceptor.dart` | Token injection pattern |

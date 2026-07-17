@@ -29,8 +29,9 @@
 
 ### 1.2 边界为何如此划分
 
-- **自包含运行时**：所有运行时类型以内联方式写入 `unified_runtime.dart`（外加一组条件导入的传输文件），
-  因此*使用者*除 `dio` 外对插件零依赖。插件内的 `lib/src/runtime/` 源码是被逐字拷贝到产物中的"真值模板"。
+- **自包含运行时**：所有运行时类型以**内联模板**形式写入 `unified_runtime.dart`（外加一组条件导入的传输文件），
+  由 `RuntimeInlineGenerator` 维护（见 §7.3），因此*使用者*除 `dio` 外对插件零依赖。
+  插件内的 `lib/src/runtime/` 源码与生成器内联模板**保持同步但非自动拷贝**——两者需手动对齐。
 - **编译期传输切分**：任何文件中只要 `import 'package:grpc/grpc.dart'`，无论运行时分支如何，gRPC 都会被
   打进 Web 产物，使 tree-shaking 失效。条件导入工厂（`unified_transport_factory.dart`）把 `grpc`/`dart:io`
   代码完全排除在 Web 构建之外（见 §5）。
@@ -106,7 +107,7 @@ flowchart TD
         etg[example_test_generator]
     end
 
-    subgraph RT [运行时模板 runtime/ 逐字拷贝]
+    subgraph RT [运行时模板 runtime/ → 经 RuntimeInlineGenerator 内联]
         tr[transport + factory + native/web/stub]
         gc[grpc_client]
         co[client_options]
@@ -157,7 +158,7 @@ lib/src/
 │   ├── runtime_inline_generator.dart   #   产出 unified_runtime.dart + 传输文件集(含 adapter)
 │   ├── mock_service_generator.dart    #   基于 mockito 的 Mock 类
 │   └── example_test_generator.dart    #   带 stub 的测试脚手架
-└── runtime/                           # ── 运行时模板（逐字拷贝到产物）
+└── runtime/                           # ── 运行时源码（经 RuntimeInlineGenerator 内联为产物，见 §7.3）
     ├── transport.dart                 #   抽象 Transport + executeWithInterceptors
     ├── transport_factory.dart         #   条件导入 createTransport()
     ├── transport_native.dart          #   dio HTTP + GrpcTransport（dart:io）
@@ -271,7 +272,9 @@ abstract class Transport {
 ```
 
 - 实现类：`HttpTransport`（原生 + Web，基于 dio）与 `GrpcTransport`（仅原生，包裹 `GrpcClient`）。
-- `serverStream` 在 HTTP 上走 **SSE**；gRPC 委托给生成的 `*ServiceClient`。
+- **SSE（server-streaming）仅原生可用**：`transport_native.dart` 的 `HttpTransport.serverStream` 经 dio `ResponseType.stream` + `SseParser` 实现 SSE；
+  `transport_web.dart` 的 `HttpTransport.serverStream` **抛 `UnimplementedError`**（"HTTP server streaming requires SSE, deferred to Phase 3"），即 Web 端 server-streaming 尚未实现。
+- gRPC server-streaming：`GrpcTransport.serverStream` 委托给生成的 `*ServiceClient`。
 - 客户端/双向流式在 HTTP 上不支持（抛 `UnsupportedError`）。
 
 ### 5.3 gRPC 接线
@@ -281,21 +284,31 @@ abstract class Transport {
 直接持有，因此 service 文件保持无 `dart:io`/`grpc` 导入、可在 Web 编译。
 
 - **平台传输** `unified_transport_native.dart`（`TransportNative`，global）：条件导出 `transport_native.dart`，
-  内含 `GrpcTransport`（包裹 `GrpcClient`）。它是**平台级**代码，不按 service 拆分。
+  内含 `HttpTransport`（dio + **SSE server-streaming**）与 `GrpcTransport`（包裹 `GrpcClient`， unary/server-streaming 均委托给生成的 `*ServiceClient`）。
+  它是**平台级**代码，不按 service 拆分。
 - **按 service 的 gRPC 适配器** `unified_transport_adapter_{name}.dart`（`TransportAdapter`，perService）：
   由 `RuntimeInlineGenerator.generateTransportAdapter(service)` 生成，**按 service 一份**，用于引入使用者
   的 `*.pbgrpc.dart` 并实现 `GrpcClient`（`{Service}GrpcAdapter`），把具名方法分派到生成客户端。
   这一拆分把 `grpc`/`dart:io` 依赖隔离在原生专用文件里，service SDK 主文件保持 Web 安全。
 
-### 5.4 `Protocol.auto` 解析
+### 5.4 `Protocol` 解析
 
-| 运行环境 | `protocol` 配置 | 实际传输 |
-|---|---|---|
-| Web | 任意 | **http**（强制） |
-| 原生 | 有 `grpcClient` | **grpc**（优先） |
-| 原生 | 仅 http | http |
+传输选择分两层决定，**运行时不做协议探测**：
 
-在编译期（平台）+ 构造期（配置）决定；运行时不做协议探测。
+1. **编译期（平台）**：条件导入工厂决定 `impl` 解析为 `transport_native.dart`（原生）或 `transport_web.dart`（Web）。Web 工厂**忽略 `protocol` 参数**，永远返回 `HttpTransport`（Web 不支持 gRPC）。
+2. **构造期（配置，仅原生生效）**：原生 `createTransport` 按 `Protocol` 枚举解析：
+
+| `protocol` 配置（原生） | 实际传输 |
+|---|---|
+| `grpc` | **grpc**（需 `grpcClient`） |
+| `http` | **http** |
+| `auto`（默认） | 有 `grpcClient` → **grpc**；否则 **http** |
+
+| 运行环境 | 结果 |
+|---|---|
+| Web | 永远 **http**（强制，忽略 `protocol`） |
+| 原生 + `grpcClient` | **grpc**（优先，除非显式 `http`） |
+| 原生，无 `grpcClient` | **http** |
 
 ---
 
@@ -363,7 +376,7 @@ flowchart LR
    （`Future<Out> method(In req)`，server-streaming 则为 `Stream<Out>`）。
 2. **`Unified{ServiceName}`** —— `implements` 该接口；持有 `_transport` 与 `_interceptors`。每个方法体：
    - HTTP 上的客户端流式 → 抛 `UnsupportedError`。
-   - server-streaming：`_transport.serverStream`（HTTP 走 SSE，否则走 gRPC）。
+    - server-streaming：`_transport.serverStream`（**原生** HTTP 走 SSE；Web HTTP 抛 `UnimplementedError`；gRPC 走生成的 `*ServiceClient`）。
    - unary：构建 `InterceptorContext`，把核心调用包进拦截器链（在*生成的方法内*构建，**而非** `Transport` 内），
      再调用 `chain(context)`。
    - 传输选择按 service：`_useHttp = methods.any(httpRule != null)`。HTTP 方法生成 `RpcCallOptions`
@@ -379,13 +392,16 @@ flowchart LR
 
 ### 7.3 `RuntimeInlineGenerator`（`generators/runtime_inline_generator.dart`）
 
-基于模板的发射器（最大文件）。`generate()` 返回完整的 `unified_runtime.dart` 源码——从 `lib/src/runtime/`
-逐字拷贝运行时类型（异常、`ApiException` 体系、拦截器、options、取消令牌、SSE 解析器、重试工具、`Protocol` 枚举），
-唯一外部依赖为 **`package:dio/dio.dart`**。它另提供 `generateTransportFactory`、`generateTransportWeb`、
-`generateTransportStub`、`generateTransportNative()`，发射其余运行时文件。
+**模板式**发射器（最大文件，1168 LOC）。`generate()` 返回完整的 `unified_runtime.dart` 源码——运行时类型
+（异常、`ApiException` 体系、拦截器、options、取消令牌、SSE 解析器、重试工具、`Protocol` 枚举）以**内联字符串模板**形式维护在类内部，
+（类头注释称"copies class definitions verbatim"），**而非运行时读取 `lib/src/runtime/` 文件**。唯一外部依赖为 **`package:dio/dio.dart`**。
+`gRPC-only` 类型与 `http_status_mapping` 被排除（死代码 / 仅 gRPC 用）。
+它另提供 `generateTransportFactory`、`generateTransportWeb`、`generateTransportStub`、`generateTransportNative()`、`generateTransportAdapter(service)`，
+分别发射 `unified_transport_{factory,web,stub,native}.dart` 与 per-service 适配器——这些同样是类内**字符串模板**。
+
+> ⚠️ 维护提示：因运行时源码以模板形式内联于 `RuntimeInlineGenerator`，修改 `lib/src/runtime/` 后**必须同步更新本生成器**
+> （运行 `dart test test/transport_native_test.dart test/runtime/runtime_test.dart` 验证）。两者不是自动同步的。
 `unified_runtime.dart` 再导出 `unified_transport_factory.dart`，使使用者透明解析 `createTransport`。
-`RuntimeInlineGenerator` 另提供 `generateTransportFactory`、`generateTransportWeb`、`generateTransportStub`、
-`generateTransportNative()`（global，无 service 参数）、`generateTransportAdapter(service)`（perService gRPC 适配器）。
 
 ### 7.4 `MockServiceGenerator` / `ExampleTestGenerator`
 
@@ -418,7 +434,11 @@ flowchart LR
     final --> resp([结果])
 ```
 
-内置拦截器：`auth`、`retry`、`tracing`、`logging`。用户通过 `ApiSdk(extraInterceptors: [...])` 追加自定义拦截器。
+**自动挂载的拦截器**（由 `ClientOptions.buildInterceptorChain` 注入）：仅 `TracingInterceptor`（若 `tracingEnabled`）与 `RetryInterceptor`（若 `autoRetryEnabled && retryPolicy != null`）。
+
+**可用的拦截器实现**：`TracingInterceptor`、`RetryInterceptor`、`AuthInterceptor`、`LoggingInterceptor` 均在运行时中定义，但 `AuthInterceptor` 与 `LoggingInterceptor` **不会自动挂载**——它们需由使用者显式经 `ClientOptions.interceptors` 或 `ApiSdk(extraInterceptors: [...])` 传入才会生效。
+
+用户自定义拦截器同样通过上述两个入口追加（位于 tracing 之后、retry 之前）。
 
 ---
 
@@ -430,8 +450,8 @@ flowchart LR
 |---|---|---|
 | `unified_runtime.dart` | global | 运行时支持类型（异常、options、拦截器、SSE、重试） |
 | `unified_transport_factory.dart` | global | `createTransport` 条件导入派发器 |
-| `unified_transport_native.dart` | global | 原生 HTTP 传输 + `GrpcTransport`（包裹 `GrpcClient`） |
-| `unified_transport_web.dart` | global | Web HTTP 传输 |
+| `unified_transport_native.dart` | global | 原生 HTTP 传输（含 SSE server-streaming）+ `GrpcTransport`（包裹 `GrpcClient`） |
+| `unified_transport_web.dart` | global | Web HTTP 传输（server-streaming 抛 `UnimplementedError`，SSE 未实现） |
 | `unified_transport_stub.dart` | global | 兜底（null）传输 |
 | `unified_transport_adapter_user_service.dart` | perService | `UserService` 的 gRPC 适配器（实现 `GrpcClient`） |
 | `user_service.dart` | perService | `UserService` 接口 + `UnifiedUserService` + `ApiSdk` |
@@ -455,7 +475,7 @@ final user = await sdk.userService.getUser(GetUserRequest(id: 1));
 | 新增拦截器 | 实现 `RpcInterceptor`；经 `ClientOptions.interceptors` 或 `ApiSdk(extraInterceptors:)` 传入。 |
 | 调整链顺序 | 改 `ClientOptions.buildInterceptorChain`。 |
 | 支持 ConnectRPC（Phase 3） | 在 `transport_factory.dart` 加新的条件导入分支 + 对应 `*_transport_*.dart`（复用 connect-dart 实现，勿重造）。 |
-| 调整运行时类型 | 改 `lib/src/runtime/` 中的源码——它由 `RuntimeInlineGenerator` 逐字拷贝。 |
+| 调整运行时类型 | 改 `lib/src/runtime/` 中的源码**并同步** `RuntimeInlineGenerator` 内联模板（两者非自动同步，见 §7.3）。 |
 
 ---
 
