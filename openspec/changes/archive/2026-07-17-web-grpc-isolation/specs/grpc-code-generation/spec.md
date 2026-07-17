@@ -1,9 +1,6 @@
 # grpc-code-generation Specification (delta)
 
-## Purpose
-Update gRPC transport delegation: `Unified<Service>` invokes calls through `_transport` uniformly (no direct `_grpcClient`/`*ServiceClient` reference), and `GrpcTransport` lives in the native-only module with full interceptor-chain and options passthrough.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: gRPC transport delegation
 

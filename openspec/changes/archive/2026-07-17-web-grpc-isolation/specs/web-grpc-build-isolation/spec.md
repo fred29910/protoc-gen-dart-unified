@@ -3,7 +3,7 @@
 ## Purpose
 确保 Web 编译产物不含 `grpc`/`dart:io` 依赖的编译期隔离机制：生成的 service 文件去 pbgrpc import，生成的 runtime 改为由 5 文件条件导入集合（`unified_runtime.dart` + `unified_transport_{factory,native,web,stub}.dart`）隔离 gRPC 实现，其中 `unified_runtime.dart` 本身不含 gRPC 实现代码。
 
-## Requirements
+## ADDED Requirements
 
 ### Requirement: Service file excludes pbgrpc import
 

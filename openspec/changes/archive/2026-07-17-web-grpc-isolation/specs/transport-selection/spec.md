@@ -3,7 +3,7 @@
 ## Purpose
 Extend the conditional-import split requirement: the generated `unified_runtime.dart` (platform-agnostic entry of the 5-file runtime set) must contain no gRPC implementation code; gRPC implementation lives only in the native conditional-import compilation unit (`unified_transport_native.dart` + per-service `unified_transport_adapter_{service}.dart`).
 
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Conditional import split
 

@@ -2,6 +2,7 @@
 change: web-grpc-isolation
 design-doc: docs/superpowers/specs/2026-07-16-web-grpc-isolation-design.md
 base-ref: d0590129cc357a88619118940fa94beec74e84cf
+archived-with: 2026-07-17-web-grpc-isolation
 ---
 
 # Web gRPC Isolation Implementation Plan

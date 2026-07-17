@@ -2,6 +2,8 @@
 comet_change: web-grpc-isolation
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-07-17-web-grpc-isolation
+status: archived
 ---
 
 # Design Doc: Web 端隔离 gRPC 代码（方案 A）

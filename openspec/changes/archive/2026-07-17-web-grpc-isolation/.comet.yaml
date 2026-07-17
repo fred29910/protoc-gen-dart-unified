@@ -17,7 +17,7 @@ verification_report: docs/superpowers/reports/2026-07-17-web-grpc-isolation-veri
 branch_status: handled
 created_at: 2026-07-16
 verified_at: 2026-07-17
-archived: false
-handoff_context: openspec/changes/web-grpc-isolation/.comet/handoff/design-context.json
+archived: true
+handoff_context: openspec/changes/archive/2026-07-17-web-grpc-isolation/.comet/handoff/design-context.json
 handoff_hash: 6d72df391a3b5b8eb590eaa13fdcb653956cf0029cdfed3ec5efe32d79af6a98
 build_command: /opt/data/flutter/bin/dart compile exe bin/protoc_gen_dart_unified.dart -o bin/protoc-gen-dart-unified
