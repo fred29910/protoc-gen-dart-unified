@@ -219,3 +219,27 @@ class InternalException extends GenerationException { ... }
 | `GrpcClient` 引入为破坏性变更 | 提供迁移辅助和缺省适配器 |
 | oneof sealed class 需 Dart 3.0+ | 检查 pubspec SDK 约束 |
 | 并行 Isolate 增加复杂度 | 默认关闭，仅大项目推荐启用 |
+
+---
+
+## 范围修订（2026-07-17）
+
+本 change 于 2026-06-26 基于 `b65d04e` 开启。截至 2026-07-17，自 base 起已累计 **43 commits / 97 files / +8854 行**的偏离（来自 `web-grpc-isolation`、`mock-client-test-stubs` 等独立归档 change）。
+
+经核查，原设计目标中的大部分能力已被更聚焦的独立 change 实现并归档：
+
+| 原 Task | 能力 | 接管的归档 change / 主 spec |
+|---------|------|----------------------------|
+| 1. 模型层 (oneof/enum/map) | `FieldModel.oneofName`、`EnumModel`、`MessageModel.enums` | `oneof-field-support`, `enum-type-mapping`, `map-type-detection` |
+| 2. 解析层增强 | descriptor_parser 扩展 | 同上 3 个 spec |
+| 3. gRPC 类型安全 | `dynamic` → `Object?`、流式委托 | `type-safe-grpc-client` |
+| 4. 输入验证 | `input_validator.dart` | `input-validation` |
+| 5. 生成器管道 | `Generator` 注册表 + 并行 | `code-generation-pipeline` |
+| 8. 测试 | oneof/enum/map/校验/grpc 单测 + golden | `test/parser/*`, `test/model/enum_model_test.dart`, `test/runtime/grpc_client_test.dart` |
+
+**保留的净新增范围仅剩两项**（从未被任何其他 change 实现）：
+
+- **Task 6**：`RuntimeInlineGenerator` 内联模板提取到 `lib/src/runtime/inline/` 独立文件 + 版本号同步机制
+- **Task 7**：`GenerationException` 密封异常层次（ParseException / ValidationException / InternalException）+ `generator.dart`/`descriptor_parser.dart` 异常替换
+
+`tasks.md` 已同步瘦身至上述两项。后续 build 仅针对 Task 6、7 执行。
