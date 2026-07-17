@@ -461,20 +461,22 @@ TracingInterceptor (若 enabled)
 
 ### 6.2 传输层选择（编译期）
 
-本项目使用 Dart **conditional imports** 实现编译期传输选择，而非运行时 `kIsWeb` 判断。该逻辑内置于 `unified_runtime.dart` 中：
+本项目使用 Dart **conditional imports** 实现编译期传输选择，而非运行时 `kIsWeb` 判断。生成产物由 5 文件 runtime 集合经 `unified_transport_factory.dart` 条件导入分发：
 
 ```dart
-// 在 unified_runtime.dart 内部
-const bool _kIsWeb = bool.fromEnvironment(
-  'dart.library.js_interop',
-  defaultValue: false,
-);
+// 在 unified_transport_factory.dart 中
+import 'unified_transport_stub.dart'
+    if (dart.library.io) 'unified_transport_native.dart'
+    if (dart.library.js_interop) 'unified_transport_web.dart'
+    as impl;
 ```
 
-- **Web 编译**：`HttpTransport` 使用 Dio 进行 HTTP 调用（SSE 不可用，抛出 `UnimplementedError`）
-- **Native 编译**：`HttpTransport` 支持 HTTP unary + SSE 流式传输；gRPC 通过 `*pbgrpc.dart` 支持
+- **Web 编译**：仅编译 `unified_transport_web.dart`（HTTP only），不编译 `unified_transport_native.dart` 与 per-service `unified_transport_adapter_*.dart`，因此 Web 构建**不会引入 `grpc`/`dart:io`**。
+- **Native 编译**：`unified_transport_native.dart` 提供 `HttpTransport` + `GrpcTransport`；纯 gRPC service 经 per-service adapter 文件（native-only，携带唯一 `*.pbgrpc.dart` import）适配到 `GrpcClient`。
 
-> 不再需要 `transport_factory.dart` 的 conditional import——所有逻辑已内联到 `unified_runtime.dart` 中。
+> **Web 不支持纯 gRPC 服务**：若 service 无 `google.api.http` 注解，Web 端 `createTransport(grpcClient: ...)` 会抛 `UnsupportedError`。请为 service 添加 HTTP 注解，或在 Native 平台使用 gRPC。
+
+> **迁移提示（破坏性变更）**：本版本起 runtime 由单文件 `unified_runtime.dart` 拆分为 5 文件集合，且纯 gRPC service 的 `*_service.dart` 不再 `import *.pbgrpc.dart`。所有存量生成代码需**一次性重新生成**才能与新 runtime 配套。
 
 ### 6.3 RetryPolicy 配置
 

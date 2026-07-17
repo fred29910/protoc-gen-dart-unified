@@ -32,8 +32,10 @@ void main() {
       );
 
       expect(response.error, isEmpty);
-      // Default mock=true generates 4 files: unified_runtime + service + mock + example_test
-      expect(response.file, hasLength(4));
+      // Default mock=true generates 9 files: 5 runtime (unified_runtime +
+      // unified_transport_{factory,native,web,stub}) + service + mock +
+      // example_test + adapter
+      expect(response.file, hasLength(9));
 
       final content = response.file
           .firstWhere((f) => f.name == 'user_service.dart')
@@ -138,9 +140,335 @@ void main() {
       );
 
       expect(response.error, isEmpty);
-      expect(response.file, hasLength(2));
-      expect(response.file[0].name, equals('unified_runtime.dart'));
-      expect(response.file[1].name, equals('user_service.dart'));
+      // mock=false generates 7 files: the 5 runtime files (emitted first, in
+      // reverse registration order due to files.insert(0, ...)) + the service
+      // file + the per-service adapter file.
+      expect(response.file, hasLength(7));
+      expect(
+        response.file.map((f) => f.name).toSet(),
+        equals({
+          'unified_transport_stub.dart',
+          'unified_transport_web.dart',
+          'unified_transport_native.dart',
+          'unified_transport_factory.dart',
+          'unified_runtime.dart',
+          'user_service.dart',
+          'unified_transport_adapter_user_service.dart',
+        }),
+      );
+    });
+
+    test('gRPC-only service has no pbgrpc import in directives', () {
+      // echo.proto fixture: pure gRPC service, no google.api.http annotations
+      final file = FileDescriptorProto()
+        ..name = 'echo.proto'
+        ..package = 'echo'
+        ..messageType.add(
+          DescriptorProto()
+            ..name = 'EchoRequest'
+            ..field.add(
+              FieldDescriptorProto()
+                ..name = 'message'
+                ..number = 1
+                ..label = FieldDescriptorProto_Label.LABEL_OPTIONAL
+                ..type = FieldDescriptorProto_Type.TYPE_STRING,
+            ),
+        )
+        ..messageType.add(
+          DescriptorProto()
+            ..name = 'EchoResponse'
+            ..field.add(
+              FieldDescriptorProto()
+                ..name = 'message'
+                ..number = 1
+                ..label = FieldDescriptorProto_Label.LABEL_OPTIONAL
+                ..type = FieldDescriptorProto_Type.TYPE_STRING,
+            ),
+        )
+        ..service.add(
+          ServiceDescriptorProto()
+            ..name = 'EchoService'
+            ..method.add(
+              MethodDescriptorProto()
+                ..name = 'Echo'
+                ..inputType = '.echo.EchoRequest'
+                ..outputType = '.echo.EchoResponse',
+            ),
+        );
+
+      final generator = CodeGenerator();
+      final response = generator.generate(
+        CodeGeneratorRequest(fileToGenerate: ['echo.proto'], protoFile: [file]),
+      );
+
+      expect(response.error, isEmpty);
+      final content = response.file
+          .firstWhere((f) => f.name == 'echo_service.dart')
+          .content;
+
+      // gRPC-only services must NOT import pbgrpc (web isolation)
+      expect(content, isNot(contains("import '../echo.pbgrpc.dart'")),
+          reason: 'gRPC-only services should not import pbgrpc');
+      // Only unified_runtime.dart + *.pb.dart imports remain
+      expect(content, contains("import 'unified_runtime.dart'"));
+      expect(content, contains("import 'echo.pb.dart'"));
+    });
+
+    test('Unified<Service> for gRPC has no _grpcClient field or grpcClient ctor param', () {
+      // echo.proto fixture: pure gRPC service, no google.api.http annotations.
+      // After web-grpc-isolation, Unified must hold only _transport + _interceptors
+      // and delegate via _transport (Task 1.3/1.4), never a _grpcClient field.
+      final file = FileDescriptorProto()
+        ..name = 'echo.proto'
+        ..package = 'echo'
+        ..messageType.add(
+          DescriptorProto()
+            ..name = 'EchoRequest'
+            ..field.add(
+              FieldDescriptorProto()
+                ..name = 'message'
+                ..number = 1
+                ..label = FieldDescriptorProto_Label.LABEL_OPTIONAL
+                ..type = FieldDescriptorProto_Type.TYPE_STRING,
+            ),
+        )
+        ..messageType.add(
+          DescriptorProto()
+            ..name = 'EchoResponse'
+            ..field.add(
+              FieldDescriptorProto()
+                ..name = 'message'
+                ..number = 1
+                ..label = FieldDescriptorProto_Label.LABEL_OPTIONAL
+                ..type = FieldDescriptorProto_Type.TYPE_STRING,
+            ),
+        )
+        ..service.add(
+          ServiceDescriptorProto()
+            ..name = 'EchoService'
+            ..method.add(
+              MethodDescriptorProto()
+                ..name = 'Echo'
+                ..inputType = '.echo.EchoRequest'
+                ..outputType = '.echo.EchoResponse',
+            ),
+        );
+
+      final generator = CodeGenerator();
+      final response = generator.generate(
+        CodeGeneratorRequest(fileToGenerate: ['echo.proto'], protoFile: [file]),
+      );
+
+      expect(response.error, isEmpty);
+      final content = response.file
+          .firstWhere((f) => f.name == 'echo_service.dart')
+          .content;
+
+      // Unified class must NOT declare a _grpcClient field
+      expect(content, isNot(contains('final GrpcClient _grpcClient')),
+          reason: 'Unified class should not declare a _grpcClient field');
+      // Unified constructor must NOT take a grpcClient parameter
+      expect(content, isNot(contains('this.grpcClient')),
+          reason: 'Unified constructor should not take a grpcClient parameter');
+      // Only _transport and _interceptors fields remain
+      expect(content, contains('final Transport _transport'));
+      expect(content, contains('final List<RpcInterceptor> _interceptors'));
+    });
+
+    test('gRPC unary call delegates to _transport.unaryCall', () {
+      // echo.proto fixture: pure gRPC service, no google.api.http annotations.
+      // After web-grpc-isolation, the unary call body must route through
+      // _transport.unaryCall (carrying ctx.options), not _grpcClient.unaryCall.
+      final file = FileDescriptorProto()
+        ..name = 'echo.proto'
+        ..package = 'echo'
+        ..messageType.add(
+          DescriptorProto()
+            ..name = 'EchoRequest'
+            ..field.add(
+              FieldDescriptorProto()
+                ..name = 'message'
+                ..number = 1
+                ..label = FieldDescriptorProto_Label.LABEL_OPTIONAL
+                ..type = FieldDescriptorProto_Type.TYPE_STRING,
+            ),
+        )
+        ..messageType.add(
+          DescriptorProto()
+            ..name = 'EchoResponse'
+            ..field.add(
+              FieldDescriptorProto()
+                ..name = 'message'
+                ..number = 1
+                ..label = FieldDescriptorProto_Label.LABEL_OPTIONAL
+                ..type = FieldDescriptorProto_Type.TYPE_STRING,
+            ),
+        )
+        ..service.add(
+          ServiceDescriptorProto()
+            ..name = 'EchoService'
+            ..method.add(
+              MethodDescriptorProto()
+                ..name = 'Echo'
+                ..inputType = '.echo.EchoRequest'
+                ..outputType = '.echo.EchoResponse',
+            ),
+        );
+
+      final generator = CodeGenerator();
+      final response = generator.generate(
+        CodeGeneratorRequest(fileToGenerate: ['echo.proto'], protoFile: [file]),
+      );
+
+      expect(response.error, isEmpty);
+      final content = response.file
+          .firstWhere((f) => f.name == 'echo_service.dart')
+          .content;
+
+      // The echo method must exist
+      expect(content, contains('Future<EchoResponse> echo('),
+          reason: 'echo method should exist');
+      // The unary call body must delegate to _transport.unaryCall
+      expect(content, contains('_transport.unaryCall<EchoResponse>'),
+          reason: 'method should delegate to _transport.unaryCall');
+      // It must NOT call _grpcClient.unaryCall directly
+      expect(content, isNot(contains('_grpcClient.unaryCall')),
+          reason: 'should not call _grpcClient directly');
+    });
+
+    test('gRPC server stream call delegates to _transport.serverStream', () {
+      // echo.proto fixture: pure gRPC service, no google.api.http annotations.
+      // After web-grpc-isolation, the server streaming call body must route
+      // through _transport.serverStream, not _grpcClient.serverStream.
+      final file = FileDescriptorProto()
+        ..name = 'echo.proto'
+        ..package = 'echo'
+        ..messageType.add(
+          DescriptorProto()
+            ..name = 'EchoRequest'
+            ..field.add(
+              FieldDescriptorProto()
+                ..name = 'message'
+                ..number = 1
+                ..label = FieldDescriptorProto_Label.LABEL_OPTIONAL
+                ..type = FieldDescriptorProto_Type.TYPE_STRING,
+            ),
+        )
+        ..messageType.add(
+          DescriptorProto()
+            ..name = 'EchoResponse'
+            ..field.add(
+              FieldDescriptorProto()
+                ..name = 'message'
+                ..number = 1
+                ..label = FieldDescriptorProto_Label.LABEL_OPTIONAL
+                ..type = FieldDescriptorProto_Type.TYPE_STRING,
+            ),
+        )
+        ..service.add(
+          ServiceDescriptorProto()
+            ..name = 'EchoService'
+            ..method.add(
+              MethodDescriptorProto()
+                ..name = 'EchoStream'
+                ..inputType = '.echo.EchoRequest'
+                ..outputType = '.echo.EchoResponse'
+                ..serverStreaming = true,
+            ),
+        );
+
+      final generator = CodeGenerator();
+      final response = generator.generate(
+        CodeGeneratorRequest(fileToGenerate: ['echo.proto'], protoFile: [file]),
+      );
+
+      expect(response.error, isEmpty);
+      final content = response.file
+          .firstWhere((f) => f.name == 'echo_service.dart')
+          .content;
+
+      // The echoStream method must exist
+      expect(content, contains('Stream<EchoResponse> echoStream('),
+          reason: 'echoStream method should exist');
+      // The server stream call body must delegate to _transport.serverStream
+      expect(content, contains('_transport.serverStream<EchoResponse>'),
+          reason: 'method should delegate to _transport.serverStream');
+      // It must NOT call _grpcClient.serverStream directly
+      expect(content, isNot(contains('_grpcClient.serverStream')),
+          reason: 'should not call _grpcClient directly');
+    });
+
+    test('ApiSdk for gRPC passes grpcClient to createTransport and constructs Unified with 2 args', () {
+      // echo.proto fixture: pure gRPC service, no google.api.http annotations.
+      // After web-grpc-isolation (Task 1.5), ApiSdk must accept a GrpcClient?
+      // interface (web-safe, not *ServiceClient), forward it into createTransport,
+      // and construct Unified<Service> with exactly 2 args (transport, interceptors).
+      final file = FileDescriptorProto()
+        ..name = 'echo.proto'
+        ..package = 'echo'
+        ..messageType.add(
+          DescriptorProto()
+            ..name = 'EchoRequest'
+            ..field.add(
+              FieldDescriptorProto()
+                ..name = 'message'
+                ..number = 1
+                ..label = FieldDescriptorProto_Label.LABEL_OPTIONAL
+                ..type = FieldDescriptorProto_Type.TYPE_STRING,
+            ),
+        )
+        ..messageType.add(
+          DescriptorProto()
+            ..name = 'EchoResponse'
+            ..field.add(
+              FieldDescriptorProto()
+                ..name = 'message'
+                ..number = 1
+                ..label = FieldDescriptorProto_Label.LABEL_OPTIONAL
+                ..type = FieldDescriptorProto_Type.TYPE_STRING,
+            ),
+        )
+        ..service.add(
+          ServiceDescriptorProto()
+            ..name = 'EchoService'
+            ..method.add(
+              MethodDescriptorProto()
+                ..name = 'Echo'
+                ..inputType = '.echo.EchoRequest'
+                ..outputType = '.echo.EchoResponse',
+            ),
+        );
+
+      final generator = CodeGenerator();
+      final response = generator.generate(
+        CodeGeneratorRequest(fileToGenerate: ['echo.proto'], protoFile: [file]),
+      );
+
+      expect(response.error, isEmpty);
+      final content = response.file
+          .firstWhere((f) => f.name == 'echo_service.dart')
+          .content;
+
+      // ApiSdk ctor must accept an optional GrpcClient? grpcClient (web-safe interface)
+      expect(content, contains('GrpcClient? grpcClient'),
+          reason: 'ApiSdk ctor should accept GrpcClient? grpcClient');
+      // ApiSdk must pass grpcClient into createTransport (not hold it directly).
+      // Assertions are formatter-agnostic: check the call, the named grpcClient
+      // arg, and the interceptors arg separately.
+      expect(content, contains('createTransport('),
+          reason: 'ApiSdk should call createTransport');
+      expect(content, contains('grpcClient: grpcClient'),
+          reason: 'ApiSdk should forward grpcClient to createTransport');
+      expect(content, contains('interceptors: _chain'),
+          reason: 'ApiSdk should forward interceptors to createTransport');
+      // Unified must be constructed with exactly 2 args (transport, interceptors)
+      expect(content, contains('UnifiedEchoService(transport, _chain)'),
+          reason: 'Unified should be constructed with transport + interceptors only');
+      // Must NOT reference native-only symbols (web isolation red line)
+      expect(content, isNot(contains('GrpcClientAdapter')),
+          reason: 'generated code must not reference GrpcClientAdapter (web isolation)');
+      expect(content, isNot(contains('EchoServiceClient')),
+          reason: 'generated code must not reference *ServiceClient (web isolation)');
     });
 
     test('declares FEATURE_PROTO3_OPTIONAL in supportedFeatures', () {

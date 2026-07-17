@@ -1,0 +1,16 @@
+{
+  "change": "web-grpc-isolation",
+  "phase": "design",
+  "mode": "compact",
+  "canonical_spec": "openspec",
+  "generated_by": "comet-handoff.sh",
+  "context_hash": "6d72df391a3b5b8eb590eaa13fdcb653956cf0029cdfed3ec5efe32d79af6a98",
+  "files": [
+    { "path": "openspec/changes/web-grpc-isolation/proposal.md", "sha256": "efdc8c0a644a14dd345eceb2bcb02197c8cca0263a465df348006db50650b29b" },
+    { "path": "openspec/changes/web-grpc-isolation/design.md", "sha256": "6b6449107b16921173101918c246b6d709c66b240c511de2b1f921af67b340b7" },
+    { "path": "openspec/changes/web-grpc-isolation/tasks.md", "sha256": "c67abcad8791e94f4c8b0a138775bca982eba78741f39d5aeb66343198ba320f" },
+    { "path": "openspec/changes/web-grpc-isolation/specs/grpc-code-generation/spec.md", "sha256": "c8c7a77fb0a6c5767b99b3dbc14e5c25e65f9985a8f907f4b012ecd3ffde65f9" },
+    { "path": "openspec/changes/web-grpc-isolation/specs/transport-selection/spec.md", "sha256": "f6910b51e8c1c11039e92cc7231efe85419d7d680d0a5471d49241c125f68b94" },
+    { "path": "openspec/changes/web-grpc-isolation/specs/web-grpc-build-isolation/spec.md", "sha256": "26b064281b5450c2af3346099457555374cfbb15b203d3b2e0d74ef6138d281c" }
+  ]
+}

@@ -395,6 +395,6 @@
   "generator": "pub",
   "generatorVersion": "3.12.2",
   "flutterRoot": "file:///opt/data/flutter",
-  "flutterVersion": "3.44.2",
+  "flutterVersion": "3.44.4",
   "pubCache": "file:///home/fred/.pub-cache"
 }

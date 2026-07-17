@@ -5,7 +5,6 @@ import '../model/service_model.dart';
 import '../model/method_model.dart';
 import '../model/message_model.dart';
 import '../builder/http_mapper.dart';
-import '../builder/query_field.dart';
 
 /// Generates a complete service file (abstract + unified impl + ApiSdk)
 /// using code_builder AST construction.
@@ -41,20 +40,16 @@ class ServiceGenerator {
   }
 
   List<Directive> _buildDirectives() {
-    final directives = <Directive>[
+    // Service files only depend on unified_runtime.dart and the protobuf
+    // message types. The gRPC client (*.pbgrpc.dart) is referenced at runtime
+    // via GrpcClient, never imported at compile time — this keeps the
+    // generated code free of dart:io/grpc so it compiles on the web.
+    return <Directive>[
       Directive.import('unified_runtime.dart'),
       Directive.import(
         service.protoFileName.replaceAll('.proto', '.pb.dart'),
       ),
     ];
-    if (!_useHttp) {
-      directives.add(
-        Directive.import(
-          '../${service.protoFileName.replaceAll('.proto', '.pbgrpc.dart')}',
-        ),
-      );
-    }
-    return directives;
   }
 
   /// Builds the abstract service interface.
@@ -88,8 +83,6 @@ class ServiceGenerator {
 
   /// Builds the unified service implementation.
   Class _buildUnifiedImpl() {
-    final isGrpc = !_useHttp;
-
     final fields = <Field>[
       Field(
         (f) => f
@@ -105,18 +98,6 @@ class ServiceGenerator {
       ),
     ];
 
-    // For gRPC services, add a _grpcClient field for direct delegation
-    if (isGrpc) {
-      fields.add(
-        Field(
-          (f) => f
-            ..name = '_grpcClient'
-            ..type = refer('dynamic')
-            ..modifier = FieldModifier.final$,
-        ),
-      );
-    }
-
     final ctorParams = <Parameter>[
       Parameter(
         (p) => p
@@ -129,17 +110,6 @@ class ServiceGenerator {
           ..toThis = true,
       ),
     ];
-
-    if (isGrpc) {
-      ctorParams.add(
-        Parameter(
-          (p) => p
-            ..name = 'grpcClient'
-            ..type = refer('dynamic')
-            ..toThis = true,
-        ),
-      );
-    }
 
     return Class(
       (b) => b
@@ -248,17 +218,11 @@ class ServiceGenerator {
     );
 
     final pathMapping = HttpMapper.mapPath(httpRule.path, inputMessage.fields);
-    final bodyMapping = HttpMapper.resolveBody(
+    final queryFields = HttpMapper.flattenQuery(
       inputMessage.fields,
-      httpRule.body,
+      pathMapping.pathFieldNames.toSet(),
+      '',
     );
-    final queryFields = bodyMapping.kind == 'all'
-        ? <QueryField>[]
-        : HttpMapper.flattenQuery(
-            inputMessage.fields,
-            pathMapping.pathFieldNames.toSet(),
-            bodyMapping.kind == 'field' ? bodyMapping.fieldName ?? '' : '',
-          );
 
     final pathInterpolation = StringBuffer();
     for (var i = 0; i < pathMapping.literalSegments.length; i++) {
@@ -270,14 +234,6 @@ class ServiceGenerator {
       }
     }
 
-    String bodyCode = '';
-    if (bodyMapping.kind == 'all') {
-      bodyCode = 'httpBody: request.toProto3Json(),';
-    } else if (bodyMapping.kind == 'field') {
-      bodyCode =
-          'httpBody: request.${HttpMapper.toCamelCase(bodyMapping.fieldName!)}.toProto3Json(),';
-    }
-
     String queryCode = '';
     if (queryFields.isNotEmpty) {
       queryCode = 'httpQueryParams: {';
@@ -287,33 +243,22 @@ class ServiceGenerator {
       queryCode += '},';
     }
 
+    // Note: additional_bindings are not used in client code generation.
+    // The client always uses the primary binding.
+    final additionalBindingsComment = httpRule.additionalBindings.isNotEmpty
+        ? ' // additional bindings: ${httpRule.additionalBindings.map((b) => '${b.kind} ${b.path}').join(', ')}'
+        : '';
+
     return '''RpcCallOptions(
-        httpMethod: '${httpRule.kind}',
-        httpPath: '$pathInterpolation',
-        $bodyCode
-        $queryCode
-      )''';
+      httpMethod: '${httpRule.kind}',
+      httpPath: '$pathInterpolation',
+      $queryCode
+    )$additionalBindingsComment''';
   }
 
-  /// Builds the core HTTP unary call expression (returns the expression string).
+  /// Builds HTTP unary call.
   String _buildHttpUnaryCall(MethodModel method) {
     final methodName = _dartMethodName(method.name);
-    final httpRule = method.httpRule;
-
-    if (httpRule == null) {
-      return "throw UnsupportedError('$methodName has no google.api.http annotation')";
-    }
-
-    // When response_body is set, we need to extract a specific field from the response
-    if (httpRule.responseBody.isNotEmpty) {
-      return '''_transport.unaryCall<Map<String, dynamic>>(
-      '${service.name}',
-      '$methodName',
-      request,
-      options: ctx.options,
-    ).then((response) => ${method.outputType}.fromProto3Json(response['${httpRule.responseBody}']) as ${method.outputType})''';
-    }
-
     return '''_transport.unaryCall<${method.outputType}>(
       '${service.name}',
       '$methodName',
@@ -323,12 +268,16 @@ class ServiceGenerator {
   }
 
   /// Builds the core gRPC unary call expression.
+  ///
+  /// Routes through [_transport.unaryCall] (carrying [InterceptorContext.options])
+  /// so the gRPC branch shares the same transport dispatch as the HTTP branch.
   String _buildGrpcUnaryCall(MethodModel method) {
     final methodName = _dartMethodName(method.name);
     return '''_transport.unaryCall<${method.outputType}>(
       '${service.name}',
       '$methodName',
       request,
+      options: ctx.options,
     )''';
   }
 
@@ -400,16 +349,23 @@ class ServiceGenerator {
     ''');
   }
 
-  /// Builds gRPC server streaming body — delegates to generated *ServiceClient.
+  /// Builds gRPC server streaming body — routes through [_transport].
+  ///
+  /// Like the HTTP server-stream body, this is a direct call to
+  /// [_transport.serverStream] (the interceptor chain is Future-based and
+  /// cannot wrap a [Stream], so server streaming is not wrapped). For gRPC
+  /// there is no [google.api.http] rule, so no [RpcCallOptions] are built and
+  /// [options] is left null — the equivalent of the unary branch's
+  /// `ctx.options` for a gRPC method.
   Code _buildGrpcServerStreamBody(MethodModel method) {
     final methodName = _dartMethodName(method.name);
-    // gRPC server streaming delegates to the generated *ServiceClient
-    // which returns ResponseStream<T> (a Stream<T>).
-    // The generated *ServiceClient is imported from *.pbgrpc.dart.
     return Code('''
-    // gRPC server streaming via generated *ServiceClient
-    final client = _grpcClient as dynamic;
-    return client.$methodName(request) as Stream<${method.outputType}>;
+    return _transport.serverStream<${method.outputType}>(
+      '${service.name}',
+      '$methodName',
+      request,
+      options: null,
+    );
     ''');
   }
 
@@ -440,13 +396,15 @@ class ServiceGenerator {
       ),
     ];
 
-    // For gRPC services, add optional grpcClient parameter
+    // For gRPC services, add optional grpcClient parameter (web-safe GrpcClient
+    // interface; native users adapt their *ServiceClient via GrpcClientAdapter,
+    // web users pass null). It is forwarded to createTransport, never held here.
     if (isGrpc) {
       ctorParams.add(
         Parameter(
           (p) => p
             ..name = 'grpcClient'
-            ..type = refer('dynamic')
+            ..type = refer('GrpcClient?')
             ..defaultTo = const Code('null')
             ..named = true,
         ),
@@ -460,7 +418,8 @@ class ServiceGenerator {
     );
     if (isGrpc) {
       body.write(
-        '$serviceFieldName = Unified${service.name}(createTransport(options.endpoint, grpcClient: grpcClient)!, _chain, grpcClient);',
+        'final transport = createTransport(options.endpoint, grpcClient: grpcClient, interceptors: _chain)!;\n'
+        '$serviceFieldName = Unified${service.name}(transport, _chain);',
       );
     } else {
       body.write(

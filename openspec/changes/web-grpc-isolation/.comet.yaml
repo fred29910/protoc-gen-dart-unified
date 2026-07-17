@@ -1,0 +1,23 @@
+workflow: full
+phase: archive
+context_compression: off
+build_mode: subagent-driven-development
+build_pause: null
+subagent_dispatch: confirmed
+tdd_mode: tdd
+review_mode: thorough
+isolation: branch
+verify_mode: full
+auto_transition: true
+base_ref: a78b4228829b5120d16b31b2dcfde28c79642299
+design_doc: docs/superpowers/specs/2026-07-16-web-grpc-isolation-design.md
+plan: docs/superpowers/plans/2026-07-16-web-grpc-isolation.md
+verify_result: pass
+verification_report: docs/superpowers/reports/2026-07-17-web-grpc-isolation-verify.md
+branch_status: handled
+created_at: 2026-07-16
+verified_at: 2026-07-17
+archived: false
+handoff_context: openspec/changes/web-grpc-isolation/.comet/handoff/design-context.json
+handoff_hash: 6d72df391a3b5b8eb590eaa13fdcb653956cf0029cdfed3ec5efe32d79af6a98
+build_command: /opt/data/flutter/bin/dart compile exe bin/protoc_gen_dart_unified.dart -o bin/protoc-gen-dart-unified

@@ -3,11 +3,6 @@
   "plugin": [
     "oh-my-openagent@latest"
   ],
-  "model": "opencode/nemotron-3-super-free",
-  "small_model": "opencode/deepseek-v4-flash-free",
-  "lsp": true,
-  "instructions": [
-    ".opencode/AGENTS.md",
-    ".opencode/CONVENTIONS.md"
-  ]
+  "model": "opencode/deepseek-v4-flash-free",
+  "lsp": true
 }

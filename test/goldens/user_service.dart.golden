@@ -59,7 +59,11 @@ class UnifiedUserService implements UserService {
       options: RpcCallOptions(
         httpMethod: 'post',
         httpPath: '/v1/users',
-        httpBody: request.toProto3Json(),
+        httpQueryParams: {
+          'name': request.name,
+          'email': request.email,
+          'display_name': request.displayName,
+        },
       ),
     );
 
@@ -95,7 +99,6 @@ class UnifiedUserService implements UserService {
       options: RpcCallOptions(
         httpMethod: 'get',
         httpPath: '/v1/users',
-
         httpQueryParams: {
           'page_size': request.pageSize,
           'page_token': request.pageToken,

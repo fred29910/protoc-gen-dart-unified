@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'transport.dart';
+import 'grpc_client.dart';
 import 'api_exception.dart';
 
 /// Creates a transport for web platforms.
@@ -7,7 +8,7 @@ import 'api_exception.dart';
 /// Web only supports HTTP transport (no gRPC).
 Transport? createTransport(
   String endpoint, {
-  dynamic grpcClient,
+  GrpcClient? grpcClient,
   List<RpcInterceptor> interceptors = const [],
 }) {
   return HttpTransport(endpoint, interceptors: interceptors);

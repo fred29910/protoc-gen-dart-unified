@@ -1,4 +1,5 @@
 import 'transport.dart';
+import 'grpc_client.dart';
 import 'transport_stub.dart'
     if (dart.library.io) 'transport_native.dart'
     if (dart.library.js_interop) 'transport_web.dart'
@@ -6,7 +7,7 @@ import 'transport_stub.dart'
 
 Transport? createTransport(
   String endpoint, {
-  dynamic grpcClient,
+  GrpcClient? grpcClient,
   List<RpcInterceptor> interceptors = const [],
 }) => impl.createTransport(
   endpoint,

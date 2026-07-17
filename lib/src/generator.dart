@@ -3,57 +3,50 @@ import 'package:fixnum/fixnum.dart';
 // ignore: implementation_imports
 import 'package:protoc_plugin/src/gen/google/protobuf/compiler/plugin.pb.dart';
 import 'parser/descriptor_parser.dart';
-import 'generators/service_generator.dart';
-import 'generators/mock_service_generator.dart';
-import 'generators/example_test_generator.dart';
-import 'generators/runtime_inline_generator.dart';
+import 'parser/input_validator.dart';
+import 'generators/generator_registry.dart';
 
 class CodeGenerator {
   final DescriptorParser _parser = DescriptorParser();
+  final InputValidator _validator = InputValidator();
 
   CodeGeneratorResponse generate(CodeGeneratorRequest request) {
     try {
-      final services = _parser.parse(request.protoFile);
-      final files = <CodeGeneratorResponse_File>[];
-      final mockEnabled = _parseMockParam(request.parameter);
-
-      for (final service in services) {
-        // Generate service file
-        final serviceGenerator = ServiceGenerator(service);
-        final serviceContent = serviceGenerator.generate();
-        files.add(
-          CodeGeneratorResponse_File(
-            name: '${_dartServiceName(service.name)}.dart',
-            content: serviceContent,
-          ),
-        );
-
-        // Generate mock and example test files (default: enabled)
-        if (mockEnabled) {
-          final mockGenerator = MockServiceGenerator(service);
-          files.add(
-            CodeGeneratorResponse_File(
-              name: '${_dartServiceName(service.name)}_mock.dart',
-              content: mockGenerator.generate(),
-            ),
-          );
-
-          final testGenerator = ExampleTestGenerator(service);
-          files.add(
-            CodeGeneratorResponse_File(
-              name: '${_dartServiceName(service.name)}_example_test.dart',
-              content: testGenerator.generate(),
-            ),
-          );
+      // Only validate when there are files to generate
+      // (empty fileToGenerate is a supported-features probe)
+      final filesToGenerate = request.protoFile
+          .where((f) => request.fileToGenerate.contains(f.name))
+          .toList();
+      if (filesToGenerate.isNotEmpty) {
+        final errors = _validator.validate(filesToGenerate);
+        if (errors.isNotEmpty) {
+          final errorMsg = errors.map((e) => e.toString()).join('\n');
+          return CodeGeneratorResponse(error: errorMsg);
         }
       }
 
-      // Emit unified_runtime.dart once per request
-      final runtimeFile = CodeGeneratorResponse_File(
-        name: 'unified_runtime.dart',
-        content: RuntimeInlineGenerator().generate(),
-      );
-      files.insert(0, runtimeFile); // insert first so it's easy to find in tests
+      final services = _parser.parse(request.protoFile);
+      final mockEnabled = _parseMockParam(request.parameter);
+      final registry = GeneratorRegistry.defaultRegistry(mockEnabled: mockEnabled);
+      final files = <CodeGeneratorResponse_File>[];
+
+      for (final service in services) {
+        final dartName = _dartServiceName(service.name);
+        for (final (fileName, content) in registry.generateForService(service, dartName)) {
+          files.add(CodeGeneratorResponse_File(
+            name: fileName,
+            content: content,
+          ));
+        }
+      }
+
+      // Emit global files once per request (e.g. unified_runtime.dart)
+      for (final (fileName, content) in registry.generateGlobal()) {
+        files.insert(0, CodeGeneratorResponse_File(
+          name: fileName,
+          content: content,
+        ));
+      }
 
       return CodeGeneratorResponse(
         file: files,

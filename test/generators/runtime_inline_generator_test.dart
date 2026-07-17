@@ -1,6 +1,8 @@
 import 'dart:io';
 
 import 'package:protoc_gen_dart_unified/src/generators/runtime_inline_generator.dart';
+import 'package:protoc_gen_dart_unified/src/model/service_model.dart';
+import 'package:protoc_gen_dart_unified/src/model/method_model.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -58,7 +60,6 @@ void main() {
       // Transport
       expect(code, contains('abstract class Transport'));
       expect(code, contains('class HttpTransport'));
-      expect(code, contains('Transport? createTransport'));
       expect(code, contains('_kIsWeb'));
 
       // SSE
@@ -77,21 +78,36 @@ void main() {
     });
 
     test('generated runtime code passes dart analyze', () async {
-      final code = generator.generate();
       final tempDir = Directory.systemTemp.createTempSync(
         'unified_runtime_test',
       );
       try {
-        // Write the generated file
-        File('${tempDir.path}/unified_runtime.dart').writeAsStringSync(code);
+        // Write the full generated runtime set. unified_runtime.dart now
+        // re-exports the conditional-import transport factory, so the factory
+        // and its platform files must be present for analysis.
+        final files = {
+          'unified_runtime.dart': generator.generate(),
+          'unified_transport_factory.dart':
+              generator.generateTransportFactory(),
+          'unified_transport_native.dart':
+              generator.generateTransportNative(),
+          'unified_transport_web.dart': generator.generateTransportWeb(),
+          'unified_transport_stub.dart': generator.generateTransportStub(),
+        };
+        files.forEach((name, content) {
+          File('${tempDir.path}/$name').writeAsStringSync(content);
+        });
 
-        // Write a minimal pubspec with dio dependency
+        // Write a minimal pubspec with dio + grpc dependencies.
+        // unified_runtime.dart re-exports the transport factory, which on the
+        // native analyzer platform conditionally pulls in the gRPC native file.
         File('${tempDir.path}/pubspec.yaml').writeAsStringSync('''
 name: runtime_test
 environment:
   sdk: '>=3.10.0 <4.0.0'
 dependencies:
   dio: ^5.9.0
+  grpc: ^5.1.0
 ''');
 
         // Run pub get
@@ -120,6 +136,256 @@ dependencies:
       } finally {
         tempDir.deleteSync(recursive: true);
       }
+    });
+
+    group('web-grpc-isolation (approach A1)', () {
+      test('generate() strips gRPC transport and re-exports factory', () {
+        final code = generator.generate();
+
+        // gRPC / dart:io must be gone from the platform-agnostic runtime.
+        expect(code, isNot(contains('class GrpcTransport')));
+        expect(code, isNot(contains("import 'package:grpc/grpc.dart'")));
+        expect(code, isNot(contains("import 'dart:io'")));
+        expect(code, isNot(contains('Transport? createTransport(')));
+
+        // Factory wiring + shared abstract types must remain.
+        expect(code, contains("unified_transport_factory.dart"));
+        expect(code, contains('abstract class GrpcClient'));
+      });
+
+      test('generateTransportFactory() dispatches via conditional imports', () {
+        final code = generator.generateTransportFactory();
+
+        expect(
+          code,
+          contains(
+            "if (dart.library.io) 'unified_transport_native.dart'",
+          ),
+        );
+        expect(
+          code,
+          contains(
+            "if (dart.library.js_interop) 'unified_transport_web.dart'",
+          ),
+        );
+        expect(code, contains('Transport? createTransport('));
+      });
+
+      test('generateTransportNative() contains gRPC transport + mapping (no adapter)', () {
+        final code = generator.generateTransportNative();
+
+        expect(code, contains("import 'package:grpc/grpc.dart'"));
+        expect(code, contains('class GrpcTransport'));
+        expect(code, contains('Transport? createTransport('));
+        expect(code, contains('_mapGrpcError'));
+        // The per-service adapter lives in its own file, NOT the global native
+        // file. The native file must stay free of pbgrpc imports and the
+        // RpcCallOptions->CallOptions mapping (that lives in the adapter).
+        expect(code, isNot(contains('GrpcAdapter')));
+        expect(code, isNot(contains('pbgrpc')));
+        expect(code, isNot(contains('_toCallOptions')));
+      });
+
+      test('generateTransportAdapter() emits per-service gRPC adapter', () {
+        final service = ServiceModel(
+          name: 'EchoService',
+          protoFileName: 'echo.proto',
+          methods: [
+            MethodModel(
+              name: 'Echo',
+              inputType: 'EchoRequest',
+              outputType: 'EchoResponse',
+              isServerStreaming: false,
+              isClientStreaming: false,
+            ),
+            MethodModel(
+              name: 'EchoStream',
+              inputType: 'EchoRequest',
+              outputType: 'EchoResponse',
+              isServerStreaming: true,
+              isClientStreaming: false,
+            ),
+          ],
+        );
+        final code = generator.generateTransportAdapter(service);
+
+        expect(code, contains("import 'package:grpc/grpc.dart'"));
+        expect(code, contains("import 'echo.pbgrpc.dart'"));
+        expect(
+          code,
+          contains('class EchoServiceGrpcAdapter implements GrpcClient'),
+        );
+        // Unary + server-streaming methods each get a switch case.
+        expect(code, contains("case 'echo':"));
+        expect(code, contains("case 'echoStream':"));
+        expect(code, contains('_toCallOptions'));
+        // Adapter must NOT pull in the HTTP transport / dio.
+        expect(code, isNot(contains('package:dio/dio.dart')));
+      });
+
+      test('generateTransportAdapter() compiles against stub pbgrpc', () async {
+        final service = ServiceModel(
+          name: 'EchoService',
+          protoFileName: 'echo.proto',
+          methods: [
+            MethodModel(
+              name: 'Echo',
+              inputType: 'EchoRequest',
+              outputType: 'EchoResponse',
+              isServerStreaming: false,
+              isClientStreaming: false,
+            ),
+            MethodModel(
+              name: 'EchoStream',
+              inputType: 'EchoRequest',
+              outputType: 'EchoResponse',
+              isServerStreaming: true,
+              isClientStreaming: false,
+            ),
+          ],
+        );
+        final tempDir = Directory.systemTemp.createTempSync('adapter_test');
+        try {
+          // Full runtime set so `unified_runtime.dart` (imported by the
+          // adapter) resolves during analysis.
+          final files = {
+            'unified_runtime.dart': generator.generate(),
+            'unified_transport_factory.dart':
+                generator.generateTransportFactory(),
+            'unified_transport_native.dart':
+                generator.generateTransportNative(),
+            'unified_transport_web.dart': generator.generateTransportWeb(),
+            'unified_transport_stub.dart': generator.generateTransportStub(),
+            // Per-service adapter under test.
+            'unified_transport_adapter_echo_service.dart':
+                generator.generateTransportAdapter(service),
+            // Stub pbgrpc that the adapter delegates to. Provides the named
+            // client methods (`echo`, `echoStream`) the switch cases call.
+            'echo.pbgrpc.dart': '''
+import 'package:grpc/grpc.dart';
+
+class EchoRequest {}
+class EchoResponse {}
+class EchoServiceClient {
+  Future<EchoResponse> echo(EchoRequest req, {CallOptions? options}) =>
+      throw UnimplementedError();
+  Stream<EchoResponse> echoStream(EchoRequest req, {CallOptions? options}) =>
+      throw UnimplementedError();
+}
+''',
+          };
+          files.forEach((name, content) {
+            File('${tempDir.path}/$name').writeAsStringSync(content);
+          });
+          File('${tempDir.path}/pubspec.yaml').writeAsStringSync('''
+name: adapter_test
+environment:
+  sdk: '>=3.10.0 <4.0.0'
+dependencies:
+  dio: ^5.9.0
+  grpc: ^5.1.0
+''');
+
+          final pubGet = await Process.run(
+            'dart',
+            ['pub', 'get'],
+            workingDirectory: tempDir.path,
+          );
+          expect(
+            pubGet.exitCode,
+            0,
+            reason: 'dart pub get failed:\n${pubGet.stderr}',
+          );
+
+          final result = await Process.run(
+            'dart',
+            ['analyze', '--fatal-infos'],
+            workingDirectory: tempDir.path,
+          );
+          expect(
+            result.exitCode,
+            0,
+            reason: 'dart analyze failed:\n${result.stdout}\n${result.stderr}',
+          );
+        } finally {
+          tempDir.deleteSync(recursive: true);
+        }
+      });
+
+      test('generateTransportWeb() is grpc/dart:io free', () {
+        final code = generator.generateTransportWeb();
+
+        expect(code, isNot(contains('package:grpc')));
+        expect(code, isNot(contains('dart:io')));
+        expect(code, contains('throw UnsupportedError'));
+        expect(code, contains('Transport? createTransport('));
+      });
+
+      test('generateTransportStub() throws UnsupportedError', () {
+        final code = generator.generateTransportStub();
+
+        expect(code, contains('Transport? createTransport('));
+        expect(code, contains('throw UnsupportedError'));
+      });
+
+      test('generated 5-file set compiles together (dart analyze)', () async {
+        final tempDir = Directory.systemTemp.createTempSync(
+          'unified_runtime_set_test',
+        );
+        try {
+          final files = {
+            'unified_runtime.dart': generator.generate(),
+            'unified_transport_factory.dart':
+                generator.generateTransportFactory(),
+            'unified_transport_native.dart':
+                generator.generateTransportNative(),
+            'unified_transport_web.dart': generator.generateTransportWeb(),
+            'unified_transport_stub.dart': generator.generateTransportStub(),
+          };
+          files.forEach((name, content) {
+            File('${tempDir.path}/$name').writeAsStringSync(content);
+          });
+
+          File('${tempDir.path}/pubspec.yaml').writeAsStringSync('''
+name: runtime_set_test
+environment:
+  sdk: '>=3.10.0 <4.0.0'
+dependencies:
+  dio: ^5.9.0
+  grpc: ^5.1.0
+''');
+
+          final pubGetResult = await Process.run(
+            'dart',
+            ['pub', 'get'],
+            workingDirectory: tempDir.path,
+          );
+          expect(
+            pubGetResult.exitCode,
+            0,
+            reason: 'dart pub get failed:\n${pubGetResult.stderr}',
+          );
+
+          final result = await Process.run(
+            'dart',
+            ['analyze', '--fatal-infos', 'unified_runtime.dart'],
+            workingDirectory: tempDir.path,
+          );
+          expect(
+            result.exitCode,
+            0,
+            reason: 'dart analyze failed:\n${result.stdout}\n${result.stderr}',
+          );
+
+          // Web file must not reference grpc / dart:io even when analyzed
+          // together with the native file.
+          final web = files['unified_transport_web.dart']!;
+          expect(web, isNot(contains('package:grpc')));
+          expect(web, isNot(contains('dart:io')));
+        } finally {
+          tempDir.deleteSync(recursive: true);
+        }
+      });
     });
   });
 }

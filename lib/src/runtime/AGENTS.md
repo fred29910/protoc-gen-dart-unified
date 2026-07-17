@@ -1,16 +1,17 @@
 # Runtime Transport Layer
 
-**Generated:** 2026-06-26
+**Generated:** 2026-07-15
 **Parent:** `AGENTS.md` (root)
 
 ## OVERVIEW
 
-HTTP + gRPC transport runtime for generated unified SDKs — 19 files implementing transport, interceptor chain, SSE parsing, cancellation, and auth.
+HTTP + gRPC transport runtime for generated unified SDKs — 20 files implementing transport, interceptor chain, SSE parsing, cancellation, auth, and the gRPC client interface.
 
 ## STRUCTURE
 
 ```
 runtime/
+├── grpc_client.dart            # Abstract GrpcClient interface (delegates to pbgrpc)
 ├── transport*.dart          # Abstract Transport + native/web/stub/factory
 ├── {auth,retry,tracing,logging}_interceptor.dart  # Interceptor implementations
 ├── client_options.dart      # ClientOptions + buildInterceptorChain()
@@ -34,6 +35,7 @@ runtime/
 | SSE parsing | `sse_parser.dart` | Server-Sent Events protocol |
 | Auth support | `auth_interceptor.dart` | Token injection pattern |
 | Cancellation | `rpc_cancel_token.dart` | Per-call cancellation |
+| gRPC client interface | `grpc_client.dart` | Abstract `GrpcClient`; `GrpcTransport` wraps it with interceptors |
 
 ## CONVENTIONS
 
@@ -42,6 +44,7 @@ runtime/
 - `executeWithInterceptors()` in Transport, but generated `Unified<Service>` builds its own chain
 - SSE for HTTP server streaming; gRPC delegates to `*ServiceClient` from `*pbgrpc.dart`
 - `withRetry` utility wraps Dio requests with configurable retry
+- `GrpcClient` abstracts the generated `*ServiceClient`; `GrpcTransport` wraps it with the interceptor chain
 
 ## ANTI-PATTERNS
 
