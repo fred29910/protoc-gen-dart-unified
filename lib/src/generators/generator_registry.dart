@@ -143,6 +143,37 @@ class GeneratorRegistry {
       fileNameFn: (_) => 'unified_runtime.dart',
     ));
 
+    // Approach A1 (web/gRPC isolation): the runtime is split into a
+    // platform-agnostic `unified_runtime.dart` plus a conditional-import
+    // transport factory set. Each file is emitted by its own global generator.
+    registry.register(GeneratorEntry(
+      name: 'TransportFactory',
+      scope: GeneratorScope.global,
+      globalGenerator: () => RuntimeInlineGenerator().generateTransportFactory(),
+      fileNameFn: (_) => 'unified_transport_factory.dart',
+    ));
+
+    registry.register(GeneratorEntry(
+      name: 'TransportNative',
+      scope: GeneratorScope.global,
+      globalGenerator: () => RuntimeInlineGenerator().generateTransportNative(),
+      fileNameFn: (_) => 'unified_transport_native.dart',
+    ));
+
+    registry.register(GeneratorEntry(
+      name: 'TransportWeb',
+      scope: GeneratorScope.global,
+      globalGenerator: () => RuntimeInlineGenerator().generateTransportWeb(),
+      fileNameFn: (_) => 'unified_transport_web.dart',
+    ));
+
+    registry.register(GeneratorEntry(
+      name: 'TransportStub',
+      scope: GeneratorScope.global,
+      globalGenerator: () => RuntimeInlineGenerator().generateTransportStub(),
+      fileNameFn: (_) => 'unified_transport_stub.dart',
+    ));
+
     return registry;
   }
 }
