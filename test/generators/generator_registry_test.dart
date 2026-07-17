@@ -33,14 +33,14 @@ void main() {
       expect(global, isEmpty);
     });
 
-    test('defaultRegistry with mockEnabled=true produces 4 entries', () {
+    test('defaultRegistry with mockEnabled=true produces 8 entries', () {
       final registry = GeneratorRegistry.defaultRegistry(mockEnabled: true);
-      expect(registry.entries, hasLength(4));
+      expect(registry.entries, hasLength(8));
     });
 
-    test('defaultRegistry with mockEnabled=false produces 2 entries', () {
+    test('defaultRegistry with mockEnabled=false produces 6 entries', () {
       final registry = GeneratorRegistry.defaultRegistry(mockEnabled: false);
-      expect(registry.entries, hasLength(2));
+      expect(registry.entries, hasLength(6));
     });
 
     test('per-service generator produces expected file name', () {
@@ -63,9 +63,9 @@ void main() {
     test('global generator produces unified_runtime.dart', () {
       final registry = GeneratorRegistry.defaultRegistry(mockEnabled: false);
       final results = registry.generateGlobal();
-      expect(results, hasLength(1));
-      expect(results.first.$1, equals('unified_runtime.dart'));
-      expect(results.first.$2, isNotEmpty);
+      expect(results, hasLength(5));
+      final runtime = results.firstWhere((r) => r.$1 == 'unified_runtime.dart');
+      expect(runtime.$2, isNotEmpty);
     });
 
     test('mockEnabled=false excludes mock and example_test generators', () {
@@ -104,7 +104,7 @@ void main() {
 
     test('setEnabled disables an entry by name', () {
       final registry = GeneratorRegistry.defaultRegistry(mockEnabled: true);
-      expect(registry.enabledEntries(), hasLength(4));
+      expect(registry.enabledEntries(), hasLength(8));
 
       final found = registry.setEnabled('Mock', false);
       expect(found, isTrue);
@@ -141,11 +141,11 @@ void main() {
 
     test('enabledEntries returns only enabled entries', () {
       final registry = GeneratorRegistry.defaultRegistry(mockEnabled: true);
-      expect(registry.enabledEntries(), hasLength(4));
+      expect(registry.enabledEntries(), hasLength(8));
 
       registry.setEnabled('Mock', false);
       registry.setEnabled('ExampleTest', false);
-      expect(registry.enabledEntries(), hasLength(2));
+      expect(registry.enabledEntries(), hasLength(6));
     });
   });
 }
