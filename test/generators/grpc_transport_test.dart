@@ -81,8 +81,8 @@ void main() {
       );
 
       expect(response.error, isEmpty);
-      // Should generate 2 files: unified_runtime, auth_service (no mock/example)
-      expect(response.file.length, equals(2));
+      // Should generate 6 files: 5 runtime files + auth_service (no mock/example)
+      expect(response.file.length, equals(6));
 
       // Check the service file
       final serviceFile = response.file
@@ -153,8 +153,8 @@ void main() {
       );
 
       expect(response.error, isEmpty);
-      // Should generate 4 files: unified_runtime, auth_service, auth_service_mock, auth_service_example_test
-      expect(response.file.length, equals(4));
+      // Should generate 8 files: 5 runtime files + auth_service + mock + example_test
+      expect(response.file.length, equals(8));
 
       final serviceFile = response.file
           .firstWhere((f) => f.name == 'auth_service.dart');
