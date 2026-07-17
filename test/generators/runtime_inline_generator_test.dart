@@ -223,6 +223,95 @@ dependencies:
         expect(code, isNot(contains('package:dio/dio.dart')));
       });
 
+      test('generateTransportAdapter() compiles against stub pbgrpc', () async {
+        final service = ServiceModel(
+          name: 'EchoService',
+          protoFileName: 'echo.proto',
+          methods: [
+            MethodModel(
+              name: 'Echo',
+              inputType: 'EchoRequest',
+              outputType: 'EchoResponse',
+              isServerStreaming: false,
+              isClientStreaming: false,
+            ),
+            MethodModel(
+              name: 'EchoStream',
+              inputType: 'EchoRequest',
+              outputType: 'EchoResponse',
+              isServerStreaming: true,
+              isClientStreaming: false,
+            ),
+          ],
+        );
+        final tempDir = Directory.systemTemp.createTempSync('adapter_test');
+        try {
+          // Full runtime set so `unified_runtime.dart` (imported by the
+          // adapter) resolves during analysis.
+          final files = {
+            'unified_runtime.dart': generator.generate(),
+            'unified_transport_factory.dart':
+                generator.generateTransportFactory(),
+            'unified_transport_native.dart':
+                generator.generateTransportNative(),
+            'unified_transport_web.dart': generator.generateTransportWeb(),
+            'unified_transport_stub.dart': generator.generateTransportStub(),
+            // Per-service adapter under test.
+            'unified_transport_adapter_echo_service.dart':
+                generator.generateTransportAdapter(service),
+            // Stub pbgrpc that the adapter delegates to. Provides the named
+            // client methods (`echo`, `echoStream`) the switch cases call.
+            'echo.pbgrpc.dart': '''
+import 'package:grpc/grpc.dart';
+
+class EchoRequest {}
+class EchoResponse {}
+class EchoServiceClient {
+  Future<EchoResponse> echo(EchoRequest req, {CallOptions? options}) =>
+      throw UnimplementedError();
+  Stream<EchoResponse> echoStream(EchoRequest req, {CallOptions? options}) =>
+      throw UnimplementedError();
+}
+''',
+          };
+          files.forEach((name, content) {
+            File('${tempDir.path}/$name').writeAsStringSync(content);
+          });
+          File('${tempDir.path}/pubspec.yaml').writeAsStringSync('''
+name: adapter_test
+environment:
+  sdk: '>=3.10.0 <4.0.0'
+dependencies:
+  dio: ^5.9.0
+  grpc: ^5.1.0
+''');
+
+          final pubGet = await Process.run(
+            'dart',
+            ['pub', 'get'],
+            workingDirectory: tempDir.path,
+          );
+          expect(
+            pubGet.exitCode,
+            0,
+            reason: 'dart pub get failed:\n${pubGet.stderr}',
+          );
+
+          final result = await Process.run(
+            'dart',
+            ['analyze', '--fatal-infos'],
+            workingDirectory: tempDir.path,
+          );
+          expect(
+            result.exitCode,
+            0,
+            reason: 'dart analyze failed:\n${result.stdout}\n${result.stderr}',
+          );
+        } finally {
+          tempDir.deleteSync(recursive: true);
+        }
+      });
+
       test('generateTransportWeb() is grpc/dart:io free', () {
         final code = generator.generateTransportWeb();
 
