@@ -16,9 +16,17 @@ canonical_spec: openspec
 `grpc`/`dart:io`，构建失败。根因有两层：
 
 1. **Service 生成层**：`service_generator.dart` 为纯 gRPC service 静态生成 pbgrpc import。
-2. **Runtime 模板层**：单文件 `unified_runtime.dart` 模板内直接定义 `GrpcTransport`
-   实现（依赖 `grpc`/`dart:io`）。Dart 条件导入仅在文件级工作，无法在文件内用
-   `#if` 隔离代码块 → Web 必然编译进 gRPC 实现。
+2. **Runtime 模板层**：原单文件 `unified_runtime.dart` 模板内直接定义 `GrpcTransport`
+    实现（依赖 `grpc`/`dart:io`）。Dart 条件导入仅在文件级工作，无法在文件内用
+    `#if` 隔离代码块 → Web 必然编译进 gRPC 实现。
+
+> **实现决策演进（已确认）**：方案 A 已演进为 **A1**——`unified_runtime.dart`
+> 不再内联 gRPC 实现，改为由 5 文件 runtime 集合经条件导入隔离
+> （`unified_runtime.dart` + `unified_transport_{factory,native,web,stub}.dart`）。
+> 适配器形态采用 **O-C**：全局 `unified_transport_native.dart` 保持无参
+> （含通用 `GrpcTransport` + `createTransport` + `_mapGrpcError` + cancel 桥接），
+> **新增 per-service `unified_transport_adapter_{service}.dart`**（逐方法 switch
+> 分发到真实 `*ServiceClient` 具名方法，native-only，携带唯一 pbgrpc import）。
 
 运行时层的条件导入（`transport_factory.dart`）已正确隔离，但 service 层与
 生成 runtime 层仍有泄漏。
@@ -27,23 +35,24 @@ canonical_spec: openspec
 
 ```
 生成产物（每个 service）:
-  user_service.dart          ← 只 import unified_runtime.dart + user.pb.dart
-  unified_runtime.dart       ← 条件导入已在此层隔离 gRPC（模板仅含接口 + 工厂）
+  user_service.dart                    ← 只 import unified_runtime.dart + user.pb.dart
+  unified_transport_adapter_user.dart  ← per-service gRPC 适配器（native-only，唯一 pbgrpc import）
+  unified_runtime.dart                 ← 条件导入此层隔离 gRPC（仅含抽象接口 + 工厂 re-export）
 
-unified_runtime.dart 模板（方案 A 后）:
-  abstract class GrpcClient { unaryCall / serverStream }
-  Transport? createTransport(endpoint, {GrpcClient? grpcClient, ...})
-
-运行时编译单元（lib/src/runtime/）:
-  transport_factory.dart     ← 条件导入分发
-    ├─ dart.library.io      → transport_native.dart  (HttpTransport + GrpcTransport + GrpcClientAdapter)
-    └─ dart.library.js_interop → transport_web.dart   (仅 HttpTransport, grpcClient!=null 时 throw)
+运行时编译单元（lib/src/runtime/ 生成集）:
+  unified_runtime.dart               ← re-export 工厂 + abstract GrpcClient + Protocol
+  unified_transport_factory.dart     ← 条件导入分发
+    ├─ dart.library.io      → unified_transport_native.dart  (HttpTransport + GrpcTransport + _mapGrpcError)
+    └─ dart.library.js_interop → unified_transport_web.dart   (仅 HttpTransport, grpcClient!=null 时 throw)
+  unified_transport_stub.dart        ← 非 io/非 js 平台的默认（UnsupportedError）
+  unified_transport_adapter_user.dart ← per-service：{Service}GrpcAdapter 实现 GrpcClient，逐方法 switch 分发到 *ServiceClient
 ```
 
-- `GrpcTransport` 仅存在于 `transport_native.dart`（native 编译单元），内部把
-  `*ServiceClient` 经 `GrpcClientAdapter` 适配为 `GrpcClient`
-- Web 因条件导入不编译 `transport_native.dart`，自然不碰 `grpc`/`dart:io`
+- `GrpcTransport` 仅存在于 `unified_transport_native.dart`（native 编译单元）
+- Web 因条件导入不编译 `unified_transport_native.dart` / `unified_transport_adapter_*.dart`，
+  自然不碰 `grpc`/`dart:io`
 - service 文件不再 `import *.pbgrpc.dart`，gRPC 依赖完全隔离在 native-only 模块
+  （全局 native 文件 + per-service adapter 文件）
 
 ## 3. Generator Layer Changes (`service_generator.dart`)
 
@@ -129,9 +138,12 @@ return HttpTransport(endpoint, interceptors: interceptors);
   - 方法体调用 `_transport.unaryCall`
 - **`transport_native_test.dart`**：用 `TestGrpcClient` 双验证 `GrpcTransport`
   委托 + `GrpcError` → `ApiException` 映射 + options 透传
-- **Web 隔离验证（任务 3.4）**：静态文本断言 + `dart analyze` —— 解析生成的
-  `unified_runtime.dart`，断言不含 `grpc`/`dart:io` import 与 `GrpcTransport`
-  类定义（轻量、无需 web 编译）
+- **Web 隔离验证（任务 3.4，已实现）**：`test/web_isolation_test.dart` 双断言——
+  (a) 生成全量文件，**排除** native transport + per-service adapter 后写入临时工程，
+  `dart analyze --fatal-infos` 必须全绿（即 web 编译集在无 `grpc`/`dart:io` 下可编译）；
+  (b) 遍历所有生成文件，仅 native/adapter 文件允许 `import grpc`/`dart:io`/`pbgrpc`，
+  其余文件一律禁止。per-service adapter 本身另由 `runtime_inline_generator_test.dart`
+  的 `generateTransportAdapter() compiles against stub pbgrpc` 实际编译验证。
 - **Golden**：`UPDATE_GOLDENS=1` 同步 + 扩展 gRPC-only 场景断言
 - **Gate**：`dart test` + `dart analyze --fatal-infos` 全绿
 
