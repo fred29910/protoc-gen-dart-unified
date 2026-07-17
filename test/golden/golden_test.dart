@@ -37,9 +37,19 @@ void main() {
       final request = CodeGeneratorRequest();
       final generator = CodeGenerator();
       final response = generator.generate(request);
-      // unified_runtime.dart is always emitted
-      expect(response.file, hasLength(1));
-      expect(response.file[0].name, equals('unified_runtime.dart'));
+      // The 5 runtime files are always emitted (global generators run even
+      // when there are no services to generate).
+      expect(response.file, hasLength(5));
+      expect(
+        response.file.map((f) => f.name).toSet(),
+        equals({
+          'unified_transport_stub.dart',
+          'unified_transport_web.dart',
+          'unified_transport_native.dart',
+          'unified_transport_factory.dart',
+          'unified_runtime.dart',
+        }),
+      );
       expect(response.error, isEmpty);
     });
 
@@ -53,8 +63,9 @@ void main() {
       );
 
       expect(response.error, isEmpty);
-      // Default mock=true generates 4 files: unified_runtime + service + mock + example_test
-      expect(response.file, hasLength(4));
+      // Default mock=true generates 8 files: 5 runtime (unified_runtime +
+      // unified_transport_{factory,native,web,stub}) + service + mock + example_test
+      expect(response.file, hasLength(8));
 
       // Verify service file
       final serviceFile = response.file.firstWhere(
@@ -168,9 +179,20 @@ void main() {
       );
 
       expect(response.error, isEmpty);
-      expect(response.file, hasLength(2));
-      expect(response.file[0].name, equals('unified_runtime.dart'));
-      expect(response.file[1].name, equals('user_service.dart'));
+      // mock=false generates 6 files: the 5 runtime files (emitted first, in
+      // reverse registration order due to files.insert(0, ...)) + the service file.
+      expect(response.file, hasLength(6));
+      expect(
+        response.file.map((f) => f.name).toSet(),
+        equals({
+          'unified_transport_stub.dart',
+          'unified_transport_web.dart',
+          'unified_transport_native.dart',
+          'unified_transport_factory.dart',
+          'unified_runtime.dart',
+          'user_service.dart',
+        }),
+      );
     });
 
     test(
@@ -185,11 +207,21 @@ void main() {
           final libDir = Directory('${tempDir.path}/lib')..createSync();
           File('${libDir.path}/user_service.dart').writeAsStringSync(content);
 
-          // Write the unified_runtime.dart so imports resolve
-          final runtimeContent = RuntimeInlineGenerator().generate();
-          File('${libDir.path}/unified_runtime.dart').writeAsStringSync(
-            runtimeContent,
-          );
+          // Write all 5 runtime files so imports / conditional-imports resolve.
+          // unified_runtime.dart re-exports unified_transport_factory.dart, which
+          // conditionally imports the native/web/stub transport files; the native
+          // file imports `package:grpc`, so grpc must be a dependency (see pubspec).
+          final runtime = RuntimeInlineGenerator();
+          File('${libDir.path}/unified_runtime.dart')
+              .writeAsStringSync(runtime.generate());
+          File('${libDir.path}/unified_transport_factory.dart')
+              .writeAsStringSync(runtime.generateTransportFactory());
+          File('${libDir.path}/unified_transport_native.dart')
+              .writeAsStringSync(runtime.generateTransportNative());
+          File('${libDir.path}/unified_transport_web.dart')
+              .writeAsStringSync(runtime.generateTransportWeb());
+          File('${libDir.path}/unified_transport_stub.dart')
+              .writeAsStringSync(runtime.generateTransportStub());
 
           File('${libDir.path}/user.pb.dart').writeAsStringSync('''
 class GetUserRequest { int get id => 0; }
@@ -205,6 +237,7 @@ environment:
 dependencies:
   protobuf: any
   dio: any
+  grpc: any
   protoc_gen_dart_unified:
     path: ${Directory.current.path}
 ''');

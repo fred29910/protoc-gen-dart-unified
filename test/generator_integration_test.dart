@@ -32,8 +32,9 @@ void main() {
       );
 
       expect(response.error, isEmpty);
-      // Default mock=true generates 4 files: unified_runtime + service + mock + example_test
-      expect(response.file, hasLength(4));
+      // Default mock=true generates 8 files: 5 runtime (unified_runtime +
+      // unified_transport_{factory,native,web,stub}) + service + mock + example_test
+      expect(response.file, hasLength(8));
 
       final content = response.file
           .firstWhere((f) => f.name == 'user_service.dart')
@@ -138,9 +139,20 @@ void main() {
       );
 
       expect(response.error, isEmpty);
-      expect(response.file, hasLength(2));
-      expect(response.file[0].name, equals('unified_runtime.dart'));
-      expect(response.file[1].name, equals('user_service.dart'));
+      // mock=false generates 6 files: the 5 runtime files (emitted first, in
+      // reverse registration order due to files.insert(0, ...)) + the service file.
+      expect(response.file, hasLength(6));
+      expect(
+        response.file.map((f) => f.name).toSet(),
+        equals({
+          'unified_transport_stub.dart',
+          'unified_transport_web.dart',
+          'unified_transport_native.dart',
+          'unified_transport_factory.dart',
+          'unified_runtime.dart',
+          'user_service.dart',
+        }),
+      );
     });
 
     test('gRPC-only service has no pbgrpc import in directives', () {
