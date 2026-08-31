@@ -5,14 +5,14 @@
 
 ## OVERVIEW
 
-Code generation core — 5 files (4 generators + pluggable registry) that produce service files, mocks, example tests, and the self-contained runtime. `code_builder` + `DartFormatter` stack. ~2180 LOC combined.
+Code generation core — 5 files (4 generators + pluggable registry) that produce service files, mocks, example tests, and the self-contained runtime. `code_builder` + `DartFormatter` stack. ~1983 LOC combined.
 
 ## STRUCTURE
 
 ```
 generators/
-├── generator_registry.dart       # 192 LOC — pluggable dispatch, defaultRegistry() wires 9 entries (7 when mock off)
-├── service_generator.dart        # 457 LOC — interface + Unified impl + ApiSdk
+├── generator_registry.dart       # 191 LOC — pluggable dispatch, defaultRegistry() wires 9 entries (7 when mock off)
+├── service_generator.dart        # 456 LOC — interface + Unified impl + ApiSdk
 ├── runtime_inline_generator.dart # 1168 LOC template — emits unified_runtime.dart + transport set + adapter
 ├── mock_service_generator.dart   # 60 LOC — mockito-based Mock class
 └── example_test_generator.dart   # 108 LOC — test scaffold with stubs
@@ -26,7 +26,7 @@ generators/
 | HTTP method generation | `service_generator.dart` lines 238–422 | Path mapping, body mapping, query params, SSE body |
 | gRPC method generation | `service_generator.dart` lines 326–421 | Delegates to `*pbgrpc.dart` |
 | Interceptor chain wrapping | `service_generator.dart` lines 202–228 | Builds chain from _interceptors list |
-| Inline runtime emission | `runtime_inline_generator.dart` | Single `generate()` method returning full source string |
+| Inline runtime emission | `runtime_inline_generator.dart` | `generate()` + 4 transport globals (`generateTransportFactory/Native/Web/Stub`) + per-service `generateTransportAdapter(service)` |
 | Mock generation | `mock_service_generator.dart` | Extends Mockito's Mock, implements service |
 | Example test generation | `example_test_generator.dart` | group/test per method with mockito stubs |
 | Generator dispatch | `generator_registry.dart` | Pluggable registry; `defaultRegistry` wires Service/Mock/ExampleTest/RuntimeInline + 4 transport files + per-service adapter (9 entries; 7 with mock off) |
