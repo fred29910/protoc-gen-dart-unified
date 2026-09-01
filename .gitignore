@@ -66,3 +66,4 @@ desktop.ini
 .env.*.local
 bin/protoc-gen-dart-unified
 .omo/
+.agent-teams/

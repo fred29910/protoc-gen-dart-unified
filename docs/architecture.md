@@ -3,6 +3,8 @@
 > 本文件是 `protoc-gen-dart-unified`（面向 `protoc` 的统一 RPC SDK 代码生成器插件）的**技术架构参考**，
 > 描述插件*是如何构建的*（模块职责、数据流、代码生成流水线）。
 > 设计决策与背景请参见 [`design.md`](./design.md)；终端用户使用方式请参见 [`usage.md`](./usage.md)。
+>
+> 本文基于 `main` 分支的实际源码核对，明确分层运行时依赖，并在多处标注与代码现状对齐的关键事实。
 
 ---
 
@@ -23,15 +25,15 @@
 | 入口 | `bin/protoc_gen_dart_unified.dart` → `CodeGenerator.generate` |
 | 解析基础 | 官方 `protoc_plugin` 的 descriptor protobuf |
 | 代码生成栈 | `code_builder`（AST）→ `DartEmitter` → `dart_style` 格式化 |
-| 运行时依赖 | 仅 `dio`（生成产物中） |
+| 运行时依赖（分层） | `unified_runtime.dart` 仅 `dio`；启用原生 gRPC 时，`unified_transport_native.dart` 与每个 service 的 `unified_transport_adapter_{service}.dart` 额外 `import 'package:grpc/grpc.dart'` 并（适配器内）引入使用者的 `*.pbgrpc.dart` |
 | 传输选择 | 编译期条件导入（`dart.library.io` / `dart.library.js_interop`） |
 | 命名转换 | Proto `PascalCase` → 文件 `snake_case`，方法 `camelCase` |
 
 ### 1.2 边界为何如此划分
 
 - **自包含运行时**：所有运行时类型以**内联模板**形式写入 `unified_runtime.dart`（外加一组条件导入的传输文件），
-  由 `RuntimeInlineGenerator` 维护（见 §7.3），因此*使用者*除 `dio` 外对插件零依赖。
-  插件内的 `lib/src/runtime/` 源码与生成器内联模板**保持同步但非自动拷贝**——两者需手动对齐。
+  由 `RuntimeInlineGenerator` 维护（见 §7.3）。使用者对插件零源码依赖；运行时依赖分层见 §1.1 关键特征。
+  插件内的 `lib/src/runtime/` 源码与生成器内联模板**保持同步但非自动拷贝**——两者需手动对齐（见 §11）。
 - **编译期传输切分**：任何文件中只要 `import 'package:grpc/grpc.dart'`，无论运行时分支如何，gRPC 都会被
   打进 Web 产物，使 tree-shaking 失效。条件导入工厂（`unified_transport_factory.dart`）把 `grpc`/`dart:io`
   代码完全排除在 Web 构建之外（见 §5）。
@@ -112,7 +114,7 @@ flowchart TD
         gc[grpc_client]
         co[client_options]
         ri[rpc_interceptor + auth/retry/tracing/logging]
-        misc[sse_parser / api_exception / retry_policy ...]
+        misc[sse_parser / api_exception / retry_policy / with_retry / rpc_cancel_token ...]
     end
 
     bin --> gen
@@ -246,7 +248,9 @@ flowchart LR
   **或** `GrpcTransport`（当提供了 `GrpcClient` 时）。
 - **Web**（`dart.library.js_interop`）：`impl` 解析为 `transport_web.dart` → 仅 `HttpTransport`
   （Web 上不可能用 gRPC）。
-- **其他平台**：`transport_stub.dart` 返回 `null`（让导入图在不支持平台上仍合法）。
+- **其他平台**：`transport_stub.dart` 源码 `=> null`（让导入图在不支持平台上仍合法）；
+  对比：内联生成的 `unified_transport_stub.dart` 模板 `=> throw UnsupportedError(...)`——两者行为不一致，
+  文档以源码为准（stub 返回 `null`）。
 
 由于 `transport_native.dart`（引入 `dart:io` 与 gRPC）仅被*条件*导入，它永远不会编译进 Web 构建→ tree-shaking 生效。
 
@@ -295,7 +299,10 @@ abstract class Transport {
 
 传输选择分两层决定，**运行时不做协议探测**：
 
-1. **编译期（平台）**：条件导入工厂决定 `impl` 解析为 `transport_native.dart`（原生）或 `transport_web.dart`（Web）。Web 工厂**忽略 `protocol` 参数**，永远返回 `HttpTransport`（Web 不支持 gRPC）。
+1. **编译期（平台）**：条件导入工厂决定 `impl` 解析为 `transport_native.dart`（原生）或 `transport_web.dart`（Web）。
+   源码 `transport_web.dart` 的 `createTransport` 签名**不接收** `protocol` 参数（且完全忽略 `grpcClient`），
+   永远返回 `HttpTransport`（Web 不支持 gRPC）；生成的 `unified_transport_web.dart` 模板虽带 `protocol` 参数但同样丢弃，
+   且在 `grpcClient != null` 时抛 `UnsupportedError`。
 2. **构造期（配置，仅原生生效）**：原生 `createTransport` 按 `Protocol` 枚举解析：
 
 | `protocol` 配置（原生） | 实际传输 |
@@ -306,7 +313,7 @@ abstract class Transport {
 
 | 运行环境 | 结果 |
 |---|---|
-| Web | 永远 **http**（强制，忽略 `protocol`） |
+| Web | 永远 **http**（强制，源码 Web 工厂无 `protocol` 参数） |
 | 原生 + `grpcClient` | **grpc**（优先，除非显式 `http`） |
 | 原生，无 `grpcClient` | **http** |
 
@@ -338,6 +345,11 @@ flowchart LR
     qf --> code
     bm --> code
 ```
+
+> ⚠️ **当前限制（已知 gap）**：`HttpMapper.resolveBody` 能产出 `BodyMapping`，但 `service_generator.dart`
+> 在生成 `RpcCallOptions` 时**只写入 `httpMethod` / `httpPath` / `httpQueryParams`**，
+> `httpBody` 字段从未被赋值（恒为 `null`）。即：当前生成的 HTTP 调用**不发送 request body**。
+> `BodyMapping` 是「已解析但暂未发射」的状态——这是与原始设计文档的真实差异，应视为待修限制。
 
 ---
 
@@ -394,13 +406,22 @@ flowchart LR
 
 **模板式**发射器（最大文件，1168 LOC）。`generate()` 返回完整的 `unified_runtime.dart` 源码——运行时类型
 （异常、`ApiException` 体系、拦截器、options、取消令牌、SSE 解析器、重试工具、`Protocol` 枚举）以**内联字符串模板**形式维护在类内部，
-（类头注释称"copies class definitions verbatim"），**而非运行时读取 `lib/src/runtime/` 文件**。唯一外部依赖为 **`package:dio/dio.dart`**。
-`gRPC-only` 类型与 `http_status_mapping` 被排除（死代码 / 仅 gRPC 用）。
+**而非运行时读取 `lib/src/runtime/` 文件**。模板是**手工维护**的（类头注释中的「copies class definitions verbatim」易被理解为逐字自动拷贝，实际上并非如此），
+经 `dart format` 后输出，但与 `lib/src/runtime/` 源文件**可能漂移**（见 §11 维护红线）。
+
+- 唯一外部依赖为 **`package:dio/dio.dart`**（仅 `unified_runtime.dart` 本身）。
+- `http_status_mapping` 模块被排除：它是 **HTTP 错误映射**用（gRPC code ↔ HTTP status），并非「gRPC-only」。
+  被排除的原因——内联运行时以 HTTP 为中心、`HttpTransport` 自带一份内联的 `_httpStatusToGrpcCode`，无需 import 该模块。
+  旧的「gRPC-only 类型被排除」措辞语义相反。
+- `gRPC-only` 类型（如 `grpc_client.dart`）亦不在 `unified_runtime.dart` 内联，但 `GrpcTransport` 出现在
+  `generateTransportNative()` 产物中。
+
 它另提供 `generateTransportFactory`、`generateTransportWeb`、`generateTransportStub`、`generateTransportNative()`、`generateTransportAdapter(service)`，
 分别发射 `unified_transport_{factory,web,stub,native}.dart` 与 per-service 适配器——这些同样是类内**字符串模板**。
 
-> ⚠️ 维护提示：因运行时源码以模板形式内联于 `RuntimeInlineGenerator`，修改 `lib/src/runtime/` 后**必须同步更新本生成器**
-> （运行 `dart test test/transport_native_test.dart test/runtime/runtime_test.dart` 验证）。两者不是自动同步的。
+> ⚠️ **维护红线（同步义务）**：因运行时源码以模板形式内联于 `RuntimeInlineGenerator`，修改 `lib/src/runtime/` 后
+> **必须同步更新本生成器**（运行 `dart test test/transport_native_test.dart test/runtime/runtime_test.dart` 等用例验证）。
+> 两者不是自动同步的；CI 间接守护但**无自动 diff 校验**——见 §11。
 `unified_runtime.dart` 再导出 `unified_transport_factory.dart`，使使用者透明解析 `createTransport`。
 
 ### 7.4 `MockServiceGenerator` / `ExampleTestGenerator`
@@ -483,8 +504,20 @@ final user = await sdk.userService.getUser(GetUserRequest(id: 1));
 
 - **传输选择不用 `kIsWeb`**：在编译期通过条件导入完成。
 - **生成代码 Web 安全**：service 文件只引入 `unified_runtime.dart` 与 `*.pb.dart`；
-  `*.pbgrpc.dart` 通过抽象 `GrpcClient` 在运行时抵达，从不 import。
-- **运行时只有一个依赖**：`dio`。
+  `*.pbgrpc.dart` 仅出现在按 service 的 `unified_transport_adapter_{service}.dart` 中，
+  通过抽象 `GrpcClient` 在运行时抵达。
+- **运行时依赖分层**：`unified_runtime.dart` 自身仅 `dio`；启用原生 gRPC 时，
+  `unified_transport_native.dart` 与 per-service 适配器额外 `import 'package:grpc/grpc.dart'`
+  （详见 §1.1 关键特征）。
 - **校验无副作用**：`InputValidator` 绝不修复 descriptor。
-- **插件参数**：`mock=false` 关闭 mock + 示例测试生成。
+- **插件参数**：`mock=false` 关闭 mock + 示例测试生成（仅影响 `Mock`/`ExampleTest` 两个 entry）。
 - **产物确定性**：`HttpMapper` + `code_builder` 产出稳定格式（`dart format --set-exit-if-changed` 为 CI 门禁）。
+- **⚠️ 维护红线（同步义务）**：`RuntimeInlineGenerator` 内联模板与 `lib/src/runtime/` 源文件**不是自动同步**的。
+  任何对 `lib/src/runtime/*.dart` 的修改都必须**手工**镜像到 `runtime_inline_generator.dart` 的字符串模板中，
+  否则生成的产物会与插件自身运行时漂移（例如 gRPC 错误映射、拦截器实现、`RpcCancelToken` → gRPC `cancel()` 桥接）。
+  CI 通过 `test/runtime/runtime_test.dart`、`test/transport_native_test.dart` 等用例间接守护，但**无自动 diff 校验**。
+- **当前限制（已知 gap）**：
+  - HTTP 调用的 request body 尚未由生成器写入（§6）。
+  - Web 端 HTTP server-streaming 尚未实现（§5.2）。
+  - gRPC 路径下拦截器链被应用两次为既成行为：`_chain` 同时被 `Unified`（生成方法内从右到左折叠）与
+    `GrpcTransport`（`executeWithInterceptors` 内）各应用一次；这是当前实现的事实行为，非 bug。
